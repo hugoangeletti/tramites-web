@@ -6,9 +6,8 @@ require_once '../html/header.php';
 require_once '../dataAccess/funcionesPhp.php';
 
 $continuar = true;
-if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
-    $idColegiado = $_SESSION['idColegiado'];
-    $hashColegiado = $_SESSION['hashColegiado'];
+if (isset($_GET['id']) && $_GET['id'] <> "") {
+    $hashColegiado = $_GET['id'];
     $matricula = $_SESSION['matricula'];
 
     //obtener los datos del colegiDO
@@ -20,9 +19,9 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     $ch = curl_init();
     
     if (ENV == "prod") {
-        curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/imprimir_chequera_plan_pago.php?idColegiado='.$idColegiado);
+        curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/imprimir_certificado_cobertura_seguro.php?id='.$hashColegiado);
     } else {
-        curl_setopt($ch, CURLOPT_URL, 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/imprimir_chequera_plan_pago.php?idColegiado='.$idColegiado);
+        curl_setopt($ch, CURLOPT_URL, 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/imprimir_certificado_cobertura_seguro.php?id='.$hashColegiado);
     }
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
@@ -44,12 +43,14 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
             if (isset($rta) && isset($rta['respuesta'])) {
                 $respuesta = $rta['respuesta'];
                 if ($respuesta['codigo'] == 1) {
-                    $chequera = $respuesta['chequera'];
+                    $certificado = $respuesta['certificado'];
                 } else {
+                    /*
                     ?>
-                    <h4 style="color: red;"<b>Error al buscar las cuotas de colegiación - <?php echo $respuesta['mensaje']; ?></b></h4>
-                <?php
-                    $continuar = FALSE;
+                    <h4 style="color: red;"<b>Error al buscar certificado - <?php echo $respuesta['mensaje']; ?></b></h4>
+                    <?php
+                    */
+                    //$continuar = FALSE;
                 }
             } else {
                 $continuar = FALSE;
@@ -85,25 +86,33 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
 }
 if ($continuar) {
 ?>
-    <div class="col-md12"><h6>Tesorería -> Cuotas de colegiación -> Imprimir chequera</h6></div>
+    <div class="col-md12"><h6>Seguro -> Imprimir certificado de cobertura</h6></div>
     <div class="container-fluid p-3" style="background-color: #8699a4 ; color: white">
         <div class="row">
             <div class="col-md-5">
                 <h5><?php echo $_SESSION['apellidoNombre']; ?></h5>
                 <h5>M.P. <?php echo $_SESSION['matricula']; ?></h5>
             </div>
-            <div class="col-md-5">
-            </div>
+            <div class="col-md-5"></div>
             <div class="col-md-2">
-                <!--<a href="planDePagos.php?id=<?php echo $hashColegiado; ?>" class="btn btn-dark">Volver</a>-->
-                <a href="tramites.php" class="btn btn-dark">Volver</a>
+                <a href="tramites.php" class="btn btn-dark" role="button">Volver</a>
             </div>
         </div>
     </div>
-    <div class="container-fluid p-3" >
-       <embed src='data:application/pdf;base64,<?php echo $chequera; ?>' height="600px" width='100%' type='application/pdf'>   
-    </div> 
-<?php
+    <?php 
+    if (isset($certificado)) {
+    ?>
+        <div class="container-fluid p-3" >
+           <embed src='data:application/pdf;base64,<?php echo $certificado; ?>' height="600px" width='100%' type='application/pdf'>   
+        </div> 
+    <?php 
+    } else {
+    ?>
+        <div class="container-fluid p-3" >
+           <h4>ERROR: <?php echo $respuesta['mensaje']; ?></h4>   
+        </div>
+    <?php
+    }
 } else {
 ?>
     <div class="col-md-12">

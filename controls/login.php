@@ -7,7 +7,7 @@ require_once '../html/header.php';
 ?>
 <div class="row">&nbsp;</div> 
 <div class="col-md-12"><hr></div>
-<div class="col-md-12"><h2>Acceso a t&aacute;mites.</h2></div>
+<div class="col-md-12"><h2>Acceso a tr&aacute;mites.</h2></div>
 <div class="row">
   <div class="col-md-4" style="background-color:#f7f7f7;">
     <form class="form-horizontal" name="login" method="post" action="control.php">

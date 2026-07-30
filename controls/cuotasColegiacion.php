@@ -6,8 +6,9 @@ require_once '../html/header.php';
 require_once '../dataAccess/funcionesPhp.php';
 
 $continuar = true;
-if (isset($_GET['id']) && $_GET['id'] == $_SESSION['idColegiado']) {
-    $idColegiado = $_GET['id'];
+if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
+    $idColegiado = $_SESSION['idColegiado'];
+    $hashColegiado = $_SESSION['hashColegiado'];
     $matricula = $_SESSION['matricula'];
 
     //obtener los datos del colegiDO
@@ -18,10 +19,10 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['idColegiado']) {
 
     $ch = curl_init();
     
-    if (DB_USER == "colmed1c_admin") {
-        curl_setopt($ch, CURLOPT_URL, 'http://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/buscar_cuotas_colegiacion.php?idColegiado='.$idColegiado);
+    if (ENV == "prod") {
+        curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/buscar_cuotas_colegiacion.php?idColegiado='.$idColegiado);
     } else {
-        curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/buscar_cuotas_colegiacion.php?idColegiado='.$idColegiado);
+        curl_setopt($ch, CURLOPT_URL, 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/buscar_cuotas_colegiacion.php?idColegiado='.$idColegiado);
     }
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
@@ -121,7 +122,7 @@ if ($continuar && isset($estadoTesoreria)) {
         if (sizeof($cuotas) >= 0) {
             $periodoActual = intval(date('Y'));
             $mes = intval(date('m'));
-            if ($mes >= 1 && $mes <=5) {
+            if ($mes >= 1 && $mes <= 6) {
                 $periodoActual -= 1;
             }
 
@@ -129,10 +130,12 @@ if ($continuar && isset($estadoTesoreria)) {
             $totalPeriodoActualActualizado = 0;
             $totalAnteriores = 0;
             $totalAnterioresActualizado = 0;
+            $cuotasPeriodoActual = 0;
             foreach ($cuotas as $cuota) {
                 if ($cuota['periodo'] == $periodoActual) {
                     $totalPeriodoActual += $cuota['importeUno'];
                     $totalPeriodoActualActualizado += $cuota['importeActualizado'];
+                    $cuotasPeriodoActual++;
                 } else {
                     $totalAnteriores += $cuota['importeUno'];
                     $totalAnterioresActualizado += $cuota['importeActualizado'];
@@ -143,14 +146,22 @@ if ($continuar && isset($estadoTesoreria)) {
             <?php
             if ($totalPeriodoActualActualizado > 0 || $totalAnterioresActualizado > 0) {
                 if ($totalPeriodoActualActualizado > 0) {
+                    if ($periodoActual == 2024) {
+                        //el periodo 2024 se imprimen de a 3 cuotas a pedido de mesa directiva 1/7/2024
+                        $cuotasTotales = $cuotasPeriodoActual.' de 12 cuotas.<br>';
+                    } else {
+                        $cuotasTotales = '';
+                    }
+
                 ?>
-                    <div class="col-md-1">
+                    <div class="col-md-2">
                         <b>Per&iacute;odo actual</b> (<?php echo $periodoActual; ?>)
                         <br>
+                        <b><?php echo $cuotasTotales; ?></b>
                         <b>Total:</b> $<?php echo $totalPeriodoActualActualizado; ?>
                     </div>
                     <div class="col-md-1">
-                        <a href="imprimirChequera.php?id=<?php echo $idColegiado; ?>" class="btn btn-dark">Imprimir chequera</a>
+                        <a href="imprimirChequera.php?id=<?php echo $hashColegiado; ?>" class="btn btn-dark">Imprimir chequera</a>
                     </div>
                 <?php                
                 }
@@ -159,13 +170,13 @@ if ($continuar && isset($estadoTesoreria)) {
                     <div class="col-md-1">
                         &nbsp;
                     </div>
-                    <div class="col-md-1">
+                    <div class="col-md-2">
                         <b>Per&iacute;odos anteriores</b>
                         <br>
                         <b>Total:</b> $<?php echo $totalAnterioresActualizado; ?>
                     </div>
                     <div class="col-md-2">
-                        <a href="imprimirNotaDeuda.php?id=<?php echo $idColegiado; ?>" class="btn btn-dark">Imprimir deuda anterior</a>
+                        <a href="imprimirNotaDeuda.php?id=<?php echo $hashColegiado; ?>" class="btn btn-dark">Imprimir deuda anterior</a>
                     </div>
                 <?php                
                 }

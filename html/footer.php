@@ -11,8 +11,5 @@
             </div>
         </div>
     </div>    
-        <!-- Bootstrap Core JavaScript -->
-        <script src="../public/js/bootstrap.js"></script>
-        <script src="../public/js/funcs.js"></script>
     </body>
 </html>

@@ -7,11 +7,7 @@ function permisoLogueado() {
             ($_SESSION['user_ip'] != $_SERVER['REMOTE_ADDR']) || 
             ($_SESSION['private'] != $_SESSION['private_alternative'])) {
 
-        if ($localhost) {
-            header("Location: " . PATH_HOME . "index.php?error=ok3");
-        } else {
-            header("Location: " . PATH_HOME . "index.php?error=ok3");
-        }
+        header("Location: " . PATH_HOME . "index.php?error=ok3");
         exit();
     }
 }

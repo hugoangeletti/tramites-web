@@ -46,22 +46,18 @@ function verificarToken($token, $claveSecreta)
 
 $continua = TRUE;
 
-if (ENV == "prod") {
-    if (!isset($_POST["g-recaptcha-response"]) || empty($_POST["g-recaptcha-response"])) {
-        //echo "Debes completar el captcha";
+if (!isset($_POST["g-recaptcha-response"]) || empty($_POST["g-recaptcha-response"])) {
+    echo "Debes completar el captcha";
+    $continua = FALSE;
+} else {
+    $token = $_POST["g-recaptcha-response"];
+    $verificado = verificarToken($token, CLAVE_SECRETA);
+    # Si no ha pasado la prueba
+    if (!$verificado) {
+        echo "Captcha incorrecto";
         $continua = FALSE;
-    } else {
-        $token = $_POST["g-recaptcha-response"];
-        $verificado = verificarToken($token, CLAVE_SECRETA);
-        # Si no ha pasado la prueba
-        /*
-        if (!$verificado) {
-            echo "Captcha incorrecto";
-            $continua = FALSE;
-        }
-        */
     }
-} 
+}
 ?>
 
 <div class="row">&nbsp;</div> 
@@ -81,9 +77,9 @@ if ($continua && isset($_POST['matricula']) && isset($_POST['dni']) && isset($_P
     $ch = curl_init();
     
     if (ENV == "prod") {
-        curl_setopt($ch, CURLOPT_URL, 'http://webservices.colmed1.com.ar/colegio/ws-colmed/usuario/validar-usuario.php?matricula='.$matricula.'&dni='.$dni.'&mail='.$mail);
+        curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/usuario/validar-usuario.php?matricula='.urlencode($matricula).'&dni='.urlencode($dni).'&mail='.urlencode($mail));
     } else {
-        curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/usuario/validar-usuario.php?matricula='.$matricula.'&dni='.$dni.'&mail='.$mail);
+        curl_setopt($ch, CURLOPT_URL, 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/usuario/validar-usuario.php?matricula='.urlencode($matricula).'&dni='.urlencode($dni).'&mail='.urlencode($mail));
     }
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
@@ -125,13 +121,13 @@ if ($continua && isset($_POST['matricula']) && isset($_POST['dni']) && isset($_P
                 ?>
                 <body onLoad="document.forms['myForm'].submit()">
                     <form name="myForm"  method="POST" action="tramites.php">
-                        <input type="hidden"  name="matricula" id="matricula" value="<?php echo $matricula; ?>">
+                        <input type="hidden"  name="matricula" id="matricula" value="<?php echo htmlspecialchars($matricula, ENT_QUOTES, 'UTF-8'); ?>">
                     </form>
                 </body>
             <?php  
             } else {
             ?>
-                <h4 style="color: red;"<b>Usuario NO V&Aacute;LIDO - <?php echo $respuesta['mensaje']; ?></b></h4>
+                <h4 style="color: red;">Usuario NO V&Aacute;LIDO - <?php echo htmlspecialchars($respuesta['mensaje'], ENT_QUOTES, 'UTF-8'); ?></h4>
             <?php
                 if (isset($respuesta['datos'])) {
                     $mailRegistrado = $respuesta['datos']['mailRegistrado'];
@@ -153,9 +149,9 @@ if ($continua && isset($_POST['matricula']) && isset($_POST['dni']) && isset($_P
                     $mailMostrar .= substr($mailRegistradoSeparado[0], $longMail-$letras, $letras);
                     $mailMostrar .= "@".$mailRegistradoSeparado[1];
                     ?>
-                    <h3>Mail registrado: <?php echo $mailMostrar; ?></h3>
+                    <h3>Mail registrado: <?php echo htmlspecialchars($mailMostrar, ENT_QUOTES, 'UTF-8'); ?></h3>
                     <div class="col-md-4">
-                        <a href="cambiarMail.php" class="btn btn-info" role="button">Cambiar Mail</a>
+                        <h4 class="alert alert-info">Si el mail registrado no coincide con su mail actual, debe acercarse a la Mesa de Entradas del Colegio de Médicos para realizar el trámite de actualización de datos.</h4>
                         <a href="login.php" class="btn btn-info" role="button">Volver</a>
                     </div>
                     

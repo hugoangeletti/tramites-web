@@ -6,10 +6,8 @@ require_once '../html/header.php';
 require_once '../dataAccess/funcionesPhp.php';
 
 $continuar = true;
-if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
-    $idColegiado = $_SESSION['idColegiado'];
-    $hashColegiado = $_SESSION['hashColegiado'];
-    $matricula = $_SESSION['matricula'];
+if (isset($_GET['id']) && $_GET['id'] <> "") {
+    $hashCertificado = $_GET['id'];
 
     //obtener los datos del colegiDO
     ini_set('xdebug.var_display_max_depth', -1);
@@ -18,11 +16,11 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     set_time_limit(0);
 
     $ch = curl_init();
-    
+
     if (ENV == "prod") {
-        curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/imprimir_chequera_plan_pago.php?idColegiado='.$idColegiado);
+        curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/certificado/obtener_certificado.php?id='.$hashCertificado);
     } else {
-        curl_setopt($ch, CURLOPT_URL, 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/imprimir_chequera_plan_pago.php?idColegiado='.$idColegiado);
+        curl_setopt($ch, CURLOPT_URL, 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/certificado/obtener_certificado.php?id='.$hashCertificado);
     }
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
@@ -44,11 +42,17 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
             if (isset($rta) && isset($rta['respuesta'])) {
                 $respuesta = $rta['respuesta'];
                 if ($respuesta['codigo'] == 1) {
-                    $chequera = $respuesta['chequera'];
+                    $certificado = $respuesta['datos'];
+                    $apellidoNombre = $certificado['apellido'].' '.$certificado['nombre'];
+                    $matricula = $certificado['matricula'];
+                    $hashColegiado = $certificado['hashColegiado'];
+                    $certificadoPdf = $certificado['certificadoPDF'];
+                    if (!isset($certificadoPdf) || $certificadoPdf == "") {
+                        $continuar = FALSE;
+                        $mensaje = "El certificado ya no se encuentra disponible, debe volver a solicitarlo.";
+                    }
                 } else {
-                    ?>
-                    <h4 style="color: red;"<b>Error al buscar las cuotas de colegiación - <?php echo $respuesta['mensaje']; ?></b></h4>
-                <?php
+                    $mensaje = "Error al buscar el certificado - ".$respuesta['mensaje'];
                     $continuar = FALSE;
                 }
             } else {
@@ -82,34 +86,48 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     }
 } else {
     $continuar = FALSE;
+    $mensaje = "ERROR AL INGRESAR";
 }
 if ($continuar) {
 ?>
-    <div class="col-md12"><h6>Tesorería -> Cuotas de colegiación -> Imprimir chequera</h6></div>
     <div class="container-fluid p-3" style="background-color: #8699a4 ; color: white">
         <div class="row">
             <div class="col-md-5">
-                <h5><?php echo $_SESSION['apellidoNombre']; ?></h5>
-                <h5>M.P. <?php echo $_SESSION['matricula']; ?></h5>
+                <h5>Certificado</h5>
             </div>
             <div class="col-md-5">
+                <h5><?php echo $apellidoNombre; ?></h5>
+                <h5>M.P. <?php echo $matricula; ?></h5>
             </div>
             <div class="col-md-2">
-                <!--<a href="planDePagos.php?id=<?php echo $hashColegiado; ?>" class="btn btn-dark">Volver</a>-->
-                <a href="tramites.php" class="btn btn-dark">Volver</a>
+                <a href="solicitar_certificado.php?id=<?php echo $hashColegiado; ?>" class="btn btn-dark">Volver</a>
             </div>
         </div>
     </div>
     <div class="container-fluid p-3" >
-       <embed src='data:application/pdf;base64,<?php echo $chequera; ?>' height="600px" width='100%' type='application/pdf'>   
+       <embed src='data:application/pdf;base64,<?php echo $certificadoPdf; ?>' height="600px" width='100%' type='application/pdf'>   
     </div> 
 <?php
 } else {
 ?>
-    <div class="col-md-12">
-        <h2 class="alert alert-danger">ERROR AL INGRESAR</h2>
+    <div class="row alert alert-danger">
+        <div class="col-md-10">
+            <h4 class=""><b><?php echo $mensaje; ?></b></h4>
+        </div>
+        <div class="col-md-2">
+            <?php 
+            if (isset($hashColegiado) && $hashColegiado <> "") {
+            ?>
+                <a href="solicitar_certificado.php?id=<?php echo $hashColegiado; ?>" class="btn btn-dark">Volver</a>
+            <?php 
+            } else {
+            ?>
+                <a href="tramites.php" class="btn btn-primary">Volver</a>
+            <?php 
+            }
+            ?>
+        </div>
     </div>
-    <a href="tramites.php" class="btn btn-primary">Volver</a>
 <?php
 }
 include("../html/footer.php");

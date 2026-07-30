@@ -6,8 +6,9 @@ require_once '../html/header.php';
 require_once '../dataAccess/funcionesPhp.php';
 
 $continuar = true;
-if (isset($_GET['id']) && $_GET['id'] == $_SESSION['idColegiado']) {
-    $idColegiado = $_GET['id'];
+if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
+    $idColegiado = $_SESSION['idColegiado'];
+    $hashColegiado = $_SESSION['hashColegiado'];
     $matricula = $_SESSION['matricula'];
 
     //obtener los datos del colegiDO
@@ -18,10 +19,10 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['idColegiado']) {
 
     $ch = curl_init();
 
-    if (DB_USER == "colmed1c_admin") {
-        curl_setopt($ch, CURLOPT_URL, 'http://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/imprimir_nota_deuda.php?idColegiado='.$idColegiado);
+    if (ENV == "prod") {
+        curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/imprimir_nota_deuda.php?idColegiado='.$idColegiado);
     } else {
-        curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/imprimir_nota_deuda.php?idColegiado='.$idColegiado);
+        curl_setopt($ch, CURLOPT_URL, 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/imprimir_nota_deuda.php?idColegiado='.$idColegiado);
     }
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
@@ -46,7 +47,7 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['idColegiado']) {
                     $chequera = $respuesta['chequera'];
                 } else {
                     ?>
-                    <h4 style="color: red;"<b>Error al buscar las cuotas de colegiación - <?php echo $respuesta['mensaje']; ?></b></h4>
+                    <h4 style="color: red;"><b>Error al buscar las cuotas de colegiación - <?php echo $respuesta['mensaje']; ?></b></h4>
                 <?php
                     $continuar = FALSE;
                 }
@@ -94,7 +95,7 @@ if ($continuar) {
             <div class="col-md-5">
             </div>
             <div class="col-md-2">
-                <a href="cuotasColegiacion.php?id=<?php echo $idColegiado; ?>" class="btn btn-dark">Volver</a>
+                <a href="cuotasColegiacion.php?id=<?php echo $hashColegiado; ?>" class="btn btn-dark">Volver</a>
             </div>
         </div>
     </div>
