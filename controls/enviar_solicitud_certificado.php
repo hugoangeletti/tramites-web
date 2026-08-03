@@ -4,6 +4,7 @@ permisoLogueado();
 require_once '../html/head.php';
 require_once '../html/header.php';
 require_once '../dataAccess/funcionesPhp.php';
+require_once '../html/menuTramites.php';
 
 $continuar = true;
 $mensaje = "";
@@ -47,7 +48,7 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
         if (ENV == "prod") {
             $url = 'https://webservices.colmed1.com.ar/colegio/ws-colmed/certificado/genera_certificado.php';
         } else {
-            $url = 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/certificado/genera_certificado.php';
+            $url = 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/certificado/genera_certificado.php';
         }
 
         // Inicializar cURL
@@ -126,6 +127,7 @@ if ($continuar) {
     </div>
 <?php
 }
+require_once "../html/menuTramitesClose.php";
 include("../html/footer.php");
 ?>
 </div>
@@ -136,7 +138,6 @@ include("../html/footer.php");
 /*
 //esto es para mostrar en el mismo php el certificado emitido
 <!--
-    <div class="container-fluid p-3" style="background-color: #8699a4 ; color: white">
         <div class="row">
             <div class="col-md-5">
                 <h5>Certificado</h5>
@@ -149,7 +150,6 @@ include("../html/footer.php");
                 <a href="solicitar_certificado.php?id=<?php echo $hashColegiado; ?>" class="btn btn-dark">Volver</a>
             </div>
         </div>
-    </div>
     <div class="container-fluid p-3" >
        <embed src='data:application/pdf;base64,<?php echo $certificadoPdf; ?>' height="600px" width='100%' type='application/pdf'>   
     </div>

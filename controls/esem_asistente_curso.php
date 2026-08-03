@@ -4,6 +4,7 @@ permisoLogueado();
 require_once '../html/head.php';
 require_once '../html/header.php';
 require_once '../dataAccess/funcionesPhp.php';
+require_once '../html/menuTramites.php';
 
 $continuar = true;
 if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
@@ -22,7 +23,7 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     if (ENV == "prod") {
         curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/cursos/buscar_cursos_inscripto.php?idColegiado='.$idColegiado);
     } else {
-        curl_setopt($ch, CURLOPT_URL, 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/cursos/buscar_cursos_inscripto.php?idColegiado='.$idColegiado);
+        curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/cursos/buscar_cursos_inscripto.php?idColegiado='.$idColegiado);
     }
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
@@ -95,24 +96,13 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
 }
 if ($continuar) {
     ?>
-    <div class="col-md12"><h6>ESEM -> Cursos -> Asistente</h6></div>
-    <div class="container-fluid p-3" style="background-color: #8699a4 ; color: white">
-        <div class="row">
-            <div class="col-md-4">
-                <h5><?php echo $_SESSION['apellidoNombre']; ?></h5>
-                <h5>M.P. <?php echo $_SESSION['matricula']; ?></h5>
-            </div>
-            <div class="col-md-4">
-            </div>
-            <div class="col-md-4 text-right">
-                <a href="tramites.php" class="btn btn-dark">Volver</a>
-            </div>
-        </div>
-    </div>
-    <div class="container-fluid p-3" >
+    <div class="card drive-card drive-banner mb-4">
+        <div class="card-body">
+            <h6>ESEM -> Cursos -> Asistente</h6>
         <?php
         if (sizeof($cursos) >= 0) {
         ?>
+            <div class="table-responsive">
             <table id="cuotas" class="table">
                 <thead>
                       <tr>
@@ -207,14 +197,16 @@ if ($continuar) {
                     ?>
                 </tbody>
             </table>
+            </div>
         <?php
         } else {
         ?>
             <h3>No se encuentra inscripto a ningun curso.</h3>
-        <?php                
+        <?php
         }
         ?>
-    </div> 
+    </div>
+    </div>
 <?php
 } else {
 ?>
@@ -224,6 +216,7 @@ if ($continuar) {
     <a href="tramites.php" class="btn btn-primary">Volver</a>
 <?php
 }
+require_once "../html/menuTramitesClose.php";
 include("../html/footer.php");
 ?>
 </div>

@@ -4,6 +4,7 @@ permisoLogueado();
 require_once '../html/head.php';
 require_once '../html/header.php';
 require_once '../dataAccess/funcionesPhp.php';
+require_once '../html/menuTramites.php';
 
 $continuar = true;
 $mensaje = "";
@@ -48,7 +49,7 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
         if (ENV == "prod") {
             $url = 'https://webservices.colmed1.com.ar/colegio/ws-colmed/cobranza/generar_intencion_pago.php';
         } else {
-            $url = 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/cobranza/generar_intencion_pago.php';
+            $url = 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/cobranza/generar_intencion_pago.php';
         }
 
         // Inicializar cURL
@@ -106,6 +107,7 @@ if ($continuar) {
     </div>
 <?php
 }
+require_once "../html/menuTramitesClose.php";
 include("../html/footer.php");
 ?>
 </div>

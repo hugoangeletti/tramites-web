@@ -4,6 +4,7 @@ permisoLogueado();
 require_once '../html/head.php';
 require_once '../html/header.php';
 require_once '../dataAccess/funcionesPhp.php';
+require_once '../html/menuTramites.php';
 
 $continuar = true;
 if (isset($_GET['id']) && $_GET['id'] <> "") {
@@ -20,7 +21,7 @@ if (isset($_GET['id']) && $_GET['id'] <> "") {
     if (ENV == "prod") {
         curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/certificado/obtener_certificado.php?id='.$hashCertificado);
     } else {
-        curl_setopt($ch, CURLOPT_URL, 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/certificado/obtener_certificado.php?id='.$hashCertificado);
+        curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/certificado/obtener_certificado.php?id='.$hashCertificado);
     }
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
@@ -90,7 +91,8 @@ if (isset($_GET['id']) && $_GET['id'] <> "") {
 }
 if ($continuar) {
 ?>
-    <div class="container-fluid p-3" style="background-color: #8699a4 ; color: white">
+        <div class="card drive-card drive-banner mb-4">
+        <div class="card-body">
         <div class="row">
             <div class="col-md-5">
                 <h5>Certificado</h5>
@@ -103,10 +105,9 @@ if ($continuar) {
                 <a href="solicitar_certificado.php?id=<?php echo $hashColegiado; ?>" class="btn btn-dark">Volver</a>
             </div>
         </div>
-    </div>
-    <div class="container-fluid p-3" >
-       <embed src='data:application/pdf;base64,<?php echo $certificadoPdf; ?>' height="600px" width='100%' type='application/pdf'>   
-    </div> 
+       <embed src='data:application/pdf;base64,<?php echo $certificadoPdf; ?>' height="600px" width='100%' type='application/pdf'>
+        </div>
+        </div>
 <?php
 } else {
 ?>
@@ -130,6 +131,7 @@ if ($continuar) {
     </div>
 <?php
 }
+require_once "../html/menuTramitesClose.php";
 include("../html/footer.php");
 ?>
   </div>

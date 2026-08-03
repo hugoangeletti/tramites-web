@@ -4,6 +4,7 @@ permisoLogueado();
 require_once '../html/head.php';
 require_once '../html/header.php';
 require_once '../dataAccess/funcionesPhp.php';
+require_once '../html/menuTramites.php';
 
 $continuar = true;
 if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
@@ -22,7 +23,7 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     if (ENV == "prod") {
         curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/buscar_solicitud_certificados.php?idColegiado='.$idColegiado);
     } else {
-        curl_setopt($ch, CURLOPT_URL, 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/buscar_solicitud_certificados.php?idColegiado='.$idColegiado);
+        curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/buscar_solicitud_certificados.php?idColegiado='.$idColegiado);
     }
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
@@ -101,17 +102,11 @@ if ($continuar) {
     <?php    
     }   
     ?>
-    <div class="container-fluid p-3" style="background-color: #8699a4 ; color: white">
-        <div class="row">
-            <div class="col-md-4">
-                <h5><?php echo $apellidoNombre; ?></h5>
-                <h5>M.P. <?php echo $matricula; ?></h5>
-            </div>
-            <div class="col-md-3">
-                <h4>Certificados solicitados</h4>
-            </div>
-            <div class="col-md-3">
-                <?php 
+        <div class="card drive-card drive-banner mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <h4 class="mb-0">Certificados solicitados</h4>
+                <?php
                 if (sizeof($solicitudes) >= 0) {
                     $solicitadasHoy = 0;
                     foreach ($solicitudes as $solicitud) {
@@ -175,23 +170,18 @@ if ($continuar) {
                     </div>
                 </div>
             </div>
-            <div class="col-md-2 text-right">
-                <a href="tramites.php" class="btn btn-dark">Volver</a>
-            </div>
-        </div>
-    </div>
-    <div class="container-fluid p-3" >
         <?php
         if (sizeof($solicitudes) >= 0) {
         ?>
+            <div class="table-responsive">
             <table id="cuotas" class="table">
                 <thead>
                       <tr>
-                          <th style="text-align: center;">Id</th>
+                          <th style="display: none;">Id</th>
                           <th style="text-align: center;">Fecha</th>
-                          <th style="text-align: left;">Tipo</th>
+                          <th class="d-none d-md-table-cell" style="text-align: left;">Tipo</th>
                           <th style="text-align: left;">Para ser presentado</th>
-                          <th style="text-align: center;">Emitido</th>
+                          <th class="d-none d-md-table-cell" style="text-align: center;">Emitido</th>
                           <th style="text-align: center;">Certificado</th>
                       </tr>
                 </thead>
@@ -211,11 +201,11 @@ if ($continuar) {
                         $leyendaSolicitudCertificadoWebEstado = $solicitud['leyendaSolicitudCertificadoWebEstado'];
                         ?>
                         <tr>
-                            <td style="text-align: center;"><?php echo $idSolicitudCertificadoWeb; ?></td>
+                            <td style="display: none;"><?php echo $idSolicitudCertificadoWeb; ?></td>
                             <td style="text-align: center;"><?php echo cambiarFechaFormatoParaMostrar(substr($fechaSolicitud, 0, 10)); ?></td>
-                            <td style="text-align: left;"><?php echo $nombreTipoCertificado; ?></td>
+                            <td class="d-none d-md-table-cell" style="text-align: left;"><?php echo $nombreTipoCertificado; ?></td>
                             <td style="text-align: left;"><?php echo trim($nombreSolcitudCertificadoWebEntidad).' '.trim($presentado); ?></td>
-                            <td style="text-align: center;"><?php echo cambiarFechaFormatoParaMostrar($fechaEmision); ?></td>
+                            <td class="d-none d-md-table-cell" style="text-align: center;"><?php echo cambiarFechaFormatoParaMostrar($fechaEmision); ?></td>
                             <td style="text-align: center;">
                                 <?php
                                 if ($vencido == 0 && $idSolicitudCertificadoWebEstado == 1) {
@@ -243,10 +233,12 @@ if ($continuar) {
                     ?>
                 </tbody>
             </table>
-        <?php                
+            </div>
+        <?php
         }
         ?>
-    </div> 
+    </div>
+    </div>
 <?php
 } else {
 ?>
@@ -256,6 +248,7 @@ if ($continuar) {
     <a href="tramites.php" class="btn btn-primary">Volver</a>
 <?php
 }
+require_once "../html/menuTramitesClose.php";
 include("../html/footer.php");
 ?>
 </div>

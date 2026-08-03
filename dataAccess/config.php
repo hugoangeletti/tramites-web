@@ -15,6 +15,8 @@ if (file_exists(__DIR__ . '/secrets.php')) {
 define("ENV", 'desa');
 //define("ENV", 'prod');
 
+define("PATH_HOME", (ENV == "prod") ? "http://www.colmed1.com.ar/tramites-web/" : "http://localhost/tramites-web/");
+
 //obtengo el periodo actual
 $periodoActual = date('Y');
 $mes = date('m');

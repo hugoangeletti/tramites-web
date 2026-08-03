@@ -46,16 +46,18 @@ function verificarToken($token, $claveSecreta)
 
 $continua = TRUE;
 
-if (!isset($_POST["g-recaptcha-response"]) || empty($_POST["g-recaptcha-response"])) {
-    echo "Debes completar el captcha";
-    $continua = FALSE;
-} else {
-    $token = $_POST["g-recaptcha-response"];
-    $verificado = verificarToken($token, CLAVE_SECRETA);
-    # Si no ha pasado la prueba
-    if (!$verificado) {
-        echo "Captcha incorrecto";
+if (ENV == "prod") {
+    if (!isset($_POST["g-recaptcha-response"]) || empty($_POST["g-recaptcha-response"])) {
+        echo "Debes completar el captcha";
         $continua = FALSE;
+    } else {
+        $token = $_POST["g-recaptcha-response"];
+        $verificado = verificarToken($token, CLAVE_SECRETA);
+        # Si no ha pasado la prueba
+        if (!$verificado) {
+            echo "Captcha incorrecto";
+            $continua = FALSE;
+        }
     }
 }
 ?>
@@ -79,7 +81,7 @@ if ($continua && isset($_POST['matricula']) && isset($_POST['dni']) && isset($_P
     if (ENV == "prod") {
         curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/usuario/validar-usuario.php?matricula='.urlencode($matricula).'&dni='.urlencode($dni).'&mail='.urlencode($mail));
     } else {
-        curl_setopt($ch, CURLOPT_URL, 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/usuario/validar-usuario.php?matricula='.urlencode($matricula).'&dni='.urlencode($dni).'&mail='.urlencode($mail));
+        curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/usuario/validar-usuario.php?matricula='.urlencode($matricula).'&dni='.urlencode($dni).'&mail='.urlencode($mail));
     }
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');

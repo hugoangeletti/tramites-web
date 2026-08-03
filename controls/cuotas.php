@@ -4,6 +4,7 @@ permisoLogueado();
 require_once '../html/head.php';
 require_once '../html/header.php';
 require_once '../dataAccess/funcionesPhp.php';
+require_once '../html/menuTramites.php';
 
 $continuar = true;
 if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
@@ -22,7 +23,7 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     if (ENV == "prod") {
         curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/buscar_cuotas_colegiacion.php?idColegiado='.$idColegiado);
     } else {
-        curl_setopt($ch, CURLOPT_URL, 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/buscar_cuotas_colegiacion.php?idColegiado='.$idColegiado);
+        curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/buscar_cuotas_colegiacion.php?idColegiado='.$idColegiado);
     }
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
@@ -103,21 +104,9 @@ if ($continuar && isset($estadoTesoreria)) {
     }
     //#0B83B2
     ?>
-    <div class="col-md12"><h6>Tesorería -> Cuotas de colegiación</h6></div>
-    <div class="container-fluid p-3" style="background-color: #8699a4 ; color: white">
-        <div class="row">
-            <div class="col-md-4">
-                <h5><?php echo $_SESSION['apellidoNombre']; ?></h5>
-                <h5>M.P. <?php echo $_SESSION['matricula']; ?></h5>
-            </div>
-            <div class="col-md-4">
-            </div>
-            <div class="col-md-4 text-right">
-                <a href="tramites.php" class="btn btn-dark">Volver</a>
-            </div>
-        </div>
-    </div>
-    <div class="container-fluid p-3" >
+    <div class="card drive-card drive-banner mb-4">
+        <div class="card-body">
+            <h6>Tesorería -> Cuotas de colegiación</h6>
         <?php
         if (sizeof($cuotas) >= 0) {
             $totalPeriodoActual = 0;
@@ -148,7 +137,7 @@ if ($continuar && isset($estadoTesoreria)) {
                                 <b>Per&iacute;odo actual</b> (<?php echo PERIODO_ACTUAL; ?>)
                                 <br>
                                 <b><?php echo $cuotasTotales; ?></b>
-                                <b>Total:</b> $<?php echo number_format($totalPeriodoActualActualizado, 2, ',', '.'); ?>
+                                <b>Total:</b> $<?php echo number_format($totalPeriodoActualActualizado, 0, ',', '.'); ?>
                             </div>
                             <div class="col-md-2">
                                 <a href="imprimirChequera.php?id=<?php echo $hashColegiado; ?>" class="btn btn-dark btn-sm">Imprimir chequera</a>
@@ -161,7 +150,7 @@ if ($continuar && isset($estadoTesoreria)) {
                             <div class="col-md-2">
                                 <b>Per&iacute;odos anteriores</b>
                                 <br>
-                                <b>Total:</b> $<?php echo number_format($totalAnterioresActualizado, 2, ',', '.'); ?>
+                                <b>Total:</b> $<?php echo number_format($totalAnterioresActualizado, 0, ',', '.'); ?>
                             </div>
                             <div class="col-md-2">
                                 <a href="imprimirNotaDeuda.php?id=<?php echo $hashColegiado; ?>" class="btn btn-dark btn-sm">Imprimir deuda anterior</a>
@@ -187,6 +176,7 @@ if ($continuar && isset($estadoTesoreria)) {
                         </div>
                     </div>
 
+                    <div class="table-responsive">
                     <table id="cuotas" class="table">
                         <thead>
                             <tr>
@@ -212,13 +202,14 @@ if ($continuar && isset($estadoTesoreria)) {
                                            onclick="cambiaTotalCuotas(this.dataset.importe, this.id)">
                                 </td>
                                 <td style="text-align: center;"><?php echo $cuota['periodo'].'-'.$cuota['cuota']; ?></td>
-                                <td style="text-align: right;"><?php echo number_format($cuota['importeUno'], 2, ',', '.'); ?></td>
-                                <td style="text-align: right;"><?php echo number_format($cuota['importeActualizado'], 2, ',', '.'); ?></td>
+                                <td style="text-align: right;"><?php echo number_format($cuota['importeUno'], 0, ',', '.'); ?></td>
+                                <td style="text-align: right;"><?php echo number_format($cuota['importeActualizado'], 0, ',', '.'); ?></td>
                                 <td style="text-align: center;"><?php echo cambiarFechaFormatoParaMostrar($cuota['vencimiento']); ?></td>
                             </tr>
                             <?php } ?>
                         </tbody>
                     </table>
+                    </div>
                 </form>
             <?php
             } else {
@@ -230,7 +221,8 @@ if ($continuar && isset($estadoTesoreria)) {
         <?php
         }
         ?>
-    </div> 
+    </div>
+    </div>
 <?php
 } else {
 ?>
@@ -240,6 +232,7 @@ if ($continuar && isset($estadoTesoreria)) {
     <a href="tramites.php" class="btn btn-primary">Volver</a>
 <?php
 }
+require_once "../html/menuTramitesClose.php";
 include("../html/footer.php");
 ?>
   </div>

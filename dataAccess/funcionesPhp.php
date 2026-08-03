@@ -179,6 +179,27 @@ function validar_clave($clave, &$error_clave) {
     return true;
 }
 
+function validarCelularArgentino($telefono) {
+    // se queda solo con los dígitos
+    $digitos = preg_replace('/\D/', '', $telefono);
+
+    // saca el código de país (54) si vino incluido
+    if (substr($digitos, 0, 2) === '54') {
+        $digitos = substr($digitos, 2);
+    }
+    // saca el 9 de celular si vino incluido
+    if (substr($digitos, 0, 1) === '9') {
+        $digitos = substr($digitos, 1);
+    }
+    // saca el 0 de larga distancia si vino incluido
+    if (substr($digitos, 0, 1) === '0') {
+        $digitos = substr($digitos, 1);
+    }
+
+    // código de área (2 a 4 dígitos) + número (6 a 8 dígitos) = 10 dígitos en total
+    return preg_match('/^\d{10}$/', $digitos) === 1;
+}
+
 function rellenarCeros($entero, $largo) {
     // Limpiamos por si se encontraran errores de tipo en las variables
     $entero = (int) $entero;

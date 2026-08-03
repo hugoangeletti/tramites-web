@@ -4,6 +4,7 @@ permisoLogueado();
 require_once '../html/head.php';
 require_once '../html/header.php';
 require_once '../dataAccess/funcionesPhp.php';
+require_once '../html/menuTramites.php';
 
 $continuar = true;
 if (isset($_GET['id']) && $_GET['id'] <> "") {
@@ -21,7 +22,7 @@ if (isset($_GET['id']) && $_GET['id'] <> "") {
     if (ENV == "prod") {
         curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/imprimir_certificado_cobertura_seguro.php?id='.$hashColegiado);
     } else {
-        curl_setopt($ch, CURLOPT_URL, 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/imprimir_certificado_cobertura_seguro.php?id='.$hashColegiado);
+        curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/imprimir_certificado_cobertura_seguro.php?id='.$hashColegiado);
     }
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
@@ -86,8 +87,9 @@ if (isset($_GET['id']) && $_GET['id'] <> "") {
 }
 if ($continuar) {
 ?>
-    <div class="col-md12"><h6>Seguro -> Imprimir certificado de cobertura</h6></div>
-    <div class="container-fluid p-3" style="background-color: #8699a4 ; color: white">
+        <div class="card drive-card drive-banner mb-4">
+        <div class="card-body">
+            <h6>Seguro -> Imprimir certificado de cobertura</h6>
         <div class="row">
             <div class="col-md-5">
                 <h5><?php echo $_SESSION['apellidoNombre']; ?></h5>
@@ -98,21 +100,20 @@ if ($continuar) {
                 <a href="tramites.php" class="btn btn-dark" role="button">Volver</a>
             </div>
         </div>
-    </div>
-    <?php 
+    <?php
     if (isset($certificado)) {
     ?>
-        <div class="container-fluid p-3" >
-           <embed src='data:application/pdf;base64,<?php echo $certificado; ?>' height="600px" width='100%' type='application/pdf'>   
-        </div> 
-    <?php 
+           <embed src='data:application/pdf;base64,<?php echo $certificado; ?>' height="600px" width='100%' type='application/pdf'>
+    <?php
     } else {
     ?>
-        <div class="container-fluid p-3" >
-           <h4>ERROR: <?php echo $respuesta['mensaje']; ?></h4>   
-        </div>
+           <h4>ERROR: <?php echo $respuesta['mensaje']; ?></h4>
     <?php
     }
+    ?>
+        </div>
+        </div>
+<?php
 } else {
 ?>
     <div class="col-md-12">
@@ -121,6 +122,7 @@ if ($continuar) {
     <a href="tramites.php" class="btn btn-primary">Volver</a>
 <?php
 }
+require_once "../html/menuTramitesClose.php";
 include("../html/footer.php");
 ?>
   </div>

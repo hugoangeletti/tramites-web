@@ -2,7 +2,7 @@
 require_once '../dataAccess/config.php';
 permisoLogueado();
 require_once '../html/head.php';
-require_once '../html/header.php';
+require_once '../html/header_embed.php';
 require_once '../dataAccess/funcionesPhp.php';
 
 $continuar = true;
@@ -44,7 +44,7 @@ if ($continuar) {
     if (ENV == "prod") {
         curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/solicitar_ampliacion_seguro.php?matricula='.$matricula.'&tipoTelefono='.$tipoTelefono.'&telefono='.$telefono);
     } else {
-        curl_setopt($ch, CURLOPT_URL, 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/solicitar_ampliacion_seguro.php?matricula='.$matricula.'&tipoTelefono='.$tipoTelefono.'&telefono='.$telefono);
+        curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/solicitar_ampliacion_seguro.php?matricula='.$matricula.'&tipoTelefono='.$tipoTelefono.'&telefono='.$telefono);
     }
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');

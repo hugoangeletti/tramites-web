@@ -4,6 +4,7 @@ permisoLogueado();
 require_once '../html/head.php';
 require_once '../html/header.php';
 require_once '../dataAccess/funcionesPhp.php';
+require_once '../html/menuTramites.php';
 
 $continuar = true;
 if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
@@ -22,7 +23,7 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     if (ENV == "prod") {
         curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/buscar_cuotas_plan_pago.php?idColegiado='.$idColegiado);
     } else {
-        curl_setopt($ch, CURLOPT_URL, 'https://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/buscar_cuotas_plan_pago.php?idColegiado='.$idColegiado);
+        curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/buscar_cuotas_plan_pago.php?idColegiado='.$idColegiado);
     }
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
@@ -100,21 +101,9 @@ if ($continuar) {
     }
     //#0B83B2
     ?>
-    <div class="col-md12"><h6>Tesorería -> Cuotas de colegiación</h6></div>
-    <div class="container-fluid p-3" style="background-color: #8699a4 ; color: white">
-        <div class="row">
-            <div class="col-md-4">
-                <h5><?php echo $_SESSION['apellidoNombre']; ?></h5>
-                <h5>M.P. <?php echo $_SESSION['matricula']; ?></h5>
-            </div>
-            <div class="col-md-4">
-            </div>
-            <div class="col-md-4 text-right">
-                <a href="tramites.php" class="btn btn-dark">Volver</a>
-            </div>
-        </div>
-    </div>
-    <div class="container-fluid p-3" >
+    <div class="card drive-card drive-banner mb-4">
+        <div class="card-body">
+            <h6>Tesorería -> Cuotas de colegiación</h6>
         <?php
         if (sizeof($cuotas) > 0) {
             ?>
@@ -124,6 +113,7 @@ if ($continuar) {
                 </div>
             </div>
             <h5>Cuotas a abonar</h5>
+            <div class="table-responsive">
             <table id="cuotas" class="table">
                 <thead>
                       <tr>
@@ -142,8 +132,8 @@ if ($continuar) {
                         <tr>
                             <td><?php echo $cuota['idPlanPagoCuota']; ?></td>
                             <td style="text-align: center;"><?php echo $cuota['cuota']; ?></td>
-                            <td style="text-align: right;"><?php echo number_format($cuota['importe'], 2, ',', '.'); ?></td>
-                            <td style="text-align: right;"><?php echo number_format($cuota['importeActualizado'], 2, ',', '.'); ?></td>
+                            <td style="text-align: right;"><?php echo number_format($cuota['importe'], 0, ',', '.'); ?></td>
+                            <td style="text-align: right;"><?php echo number_format($cuota['importeActualizado'], 0, ',', '.'); ?></td>
                             <td style="text-align: center;"><?php echo cambiarFechaFormatoParaMostrar($cuota['vencimiento']); ?></td>
                         </tr>
                     <?php
@@ -151,6 +141,7 @@ if ($continuar) {
                     ?>
                 </tbody>
             </table>
+            </div>
         <?php
         } else {
         ?>
@@ -158,7 +149,8 @@ if ($continuar) {
         <?php
         }
         ?>
-    </div> 
+    </div>
+    </div>
 <?php
 } else {
 ?>
@@ -168,6 +160,7 @@ if ($continuar) {
     <a href="tramites.php" class="btn btn-primary">Volver</a>
 <?php
 }
+require_once "../html/menuTramitesClose.php";
 include("../html/footer.php");
 ?>
   </div>
