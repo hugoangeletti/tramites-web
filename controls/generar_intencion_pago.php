@@ -47,7 +47,7 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
 
         // URL de la API REST donde se enviarán los datos
         if (ENV == "prod") {
-            $url = 'https://webservices.colmed1.com.ar/colegio/ws-colmed/cobranza/generar_intencion_pago.php';
+            $url = 'http://webservices.colmed1.com.ar/colegio/ws-colmed/cobranza/generar_intencion_pago.php';
         } else {
             $url = 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/cobranza/generar_intencion_pago.php';
         }

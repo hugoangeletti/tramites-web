@@ -15,7 +15,7 @@ if ($continua) {
 
     $ch = curl_init();
     if (ENV == "prod") {
-        curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/buscar_colegiado.php?matricula='.$matricula);
+        curl_setopt($ch, CURLOPT_URL, 'http://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/buscar_colegiado.php?matricula='.$matricula);
     } else {
         curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/buscar_colegiado.php?matricula='.$matricula);
     }

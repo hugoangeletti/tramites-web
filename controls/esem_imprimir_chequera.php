@@ -21,7 +21,7 @@ if (isset($_GET['id']) && $_GET['id'] <> "" && isset($_GET['reg']) && $_GET['reg
     $ch = curl_init();
     
     if (ENV == "prod") {
-        curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/cursos/imprimir_chequera_curso.php?id='.$hashColegiado.'&idCurso='.$idCurso);
+        curl_setopt($ch, CURLOPT_URL, 'http://webservices.colmed1.com.ar/colegio/ws-colmed/cursos/imprimir_chequera_curso.php?id='.$hashColegiado.'&idCurso='.$idCurso);
     } else {
         curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/cursos/imprimir_chequera_curso.php?id='.$hashColegiado.'&idCurso='.$idCurso);
     }

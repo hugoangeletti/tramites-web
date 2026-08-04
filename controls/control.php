@@ -19,6 +19,7 @@ function verificarToken($token, $claveSecreta)
             "header" => "Content-type: application/x-www-form-urlencoded\r\n",
             "method" => "POST",
             "content" => http_build_query($datos), # Agregar el contenido definido antes
+            "timeout" => 10,
         ),
     );
     # Preparar petición
@@ -39,7 +40,7 @@ function verificarToken($token, $claveSecreta)
     $resultado = json_decode($resultado);
     # La variable que nos interesa para saber si el usuario pasó o no la prueba
     # está en success
-    $pruebaPasada = $resultado->success;
+    $pruebaPasada = $resultado->success ?? false;
     # Regresamos ese valor, y listo (sí, ya sé que se podría regresar $resultado->success)
     return $pruebaPasada;
 }
@@ -79,7 +80,7 @@ if ($continua && isset($_POST['matricula']) && isset($_POST['dni']) && isset($_P
     $ch = curl_init();
     
     if (ENV == "prod") {
-        curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/usuario/validar-usuario.php?matricula='.urlencode($matricula).'&dni='.urlencode($dni).'&mail='.urlencode($mail));
+        curl_setopt($ch, CURLOPT_URL, 'http://webservices.colmed1.com.ar/colegio/ws-colmed/usuario/validar-usuario.php?matricula='.urlencode($matricula).'&dni='.urlencode($dni).'&mail='.urlencode($mail));
     } else {
         curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/usuario/validar-usuario.php?matricula='.urlencode($matricula).'&dni='.urlencode($dni).'&mail='.urlencode($mail));
     }

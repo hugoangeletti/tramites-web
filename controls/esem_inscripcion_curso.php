@@ -21,7 +21,7 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     $ch = curl_init();
     
     if (ENV == "prod") {
-        curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/cursos/buscar_cursos_activos.php?idColegiado='.$idColegiado);
+        curl_setopt($ch, CURLOPT_URL, 'http://webservices.colmed1.com.ar/colegio/ws-colmed/cursos/buscar_cursos_activos.php?idColegiado='.$idColegiado);
     } else {
         curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/cursos/buscar_cursos_activos.php?idColegiado='.$idColegiado);
     }

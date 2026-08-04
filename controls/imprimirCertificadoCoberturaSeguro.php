@@ -20,7 +20,7 @@ if (isset($_GET['id']) && $_GET['id'] <> "") {
     $ch = curl_init();
     
     if (ENV == "prod") {
-        curl_setopt($ch, CURLOPT_URL, 'https://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/imprimir_certificado_cobertura_seguro.php?id='.$hashColegiado);
+        curl_setopt($ch, CURLOPT_URL, 'http://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/imprimir_certificado_cobertura_seguro.php?id='.$hashColegiado);
     } else {
         curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/imprimir_certificado_cobertura_seguro.php?id='.$hashColegiado);
     }
