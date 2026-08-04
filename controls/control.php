@@ -47,7 +47,7 @@ function verificarToken($token, $claveSecreta)
 
 $continua = TRUE;
 
-if (ENV == "prod") {
+if (false && ENV == "prod") {
     if (!isset($_POST["g-recaptcha-response"]) || empty($_POST["g-recaptcha-response"])) {
         echo "Debes completar el captcha";
         $continua = FALSE;
