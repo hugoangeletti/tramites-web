@@ -97,8 +97,7 @@ if ($continuar) {
             <div class="col-md-5">
             </div>
             <div class="col-md-2">
-                <!--<a href="planDePagos.php?id=<?php echo $hashColegiado; ?>" class="btn btn-dark">Volver</a>-->
-                <a href="tramites.php" class="btn btn-dark">Volver</a>
+                <a href="planDePagos.php?id=<?php echo $hashColegiado; ?>" class="btn btn-dark">Volver</a>
             </div>
         </div>
        <embed src='data:application/pdf;base64,<?php echo $chequera; ?>' height="600px" width='100%' type='application/pdf'>

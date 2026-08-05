@@ -167,7 +167,7 @@ if ($continua) {
                             <li>Solicitar un certificado.</li>
                         <?php } ?>
                         <li>
-                            Consultar y pagar sus cuotas de colegiaci&oacute;n<?php if ($estadoTesoreriaCodigo == 4) { ?> o adherirse a un plan de pagos<?php } ?>.
+                            Consultar y pagar sus cuotas de colegiaci&oacute;n<?php if (in_array($estadoTesoreriaCodigo, array(4, 5, 6, 7))) { ?> o adherirse a un plan de pagos<?php } ?>.
                         </li>
                         <li>
                             Inscribirse a cursos ESEM<?php if ($tieneCurso) { ?> o consultar los cursos en los que ya se encuentra inscripto<?php } ?>.

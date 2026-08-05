@@ -91,7 +91,9 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
 if ($continuar) {
 ?>
     <body onLoad="document.forms['myForm'].submit()">
-        <form name="myForm"  method="POST" action="boton_pago.php?id=<?php echo $hashIntencionPago; ?>">
+        <form name="myForm" method="POST" action="procesar_pago.php?id=<?php echo $hashColegiado; ?>">
+            <input type="hidden" name="hashIntencionPago" value="<?php echo htmlspecialchars($hashIntencionPago, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="totalActualizado" value="<?php echo htmlspecialchars($totalActualizado, ENT_QUOTES, 'UTF-8'); ?>">
         </form>
     </body>
 <?php

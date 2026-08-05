@@ -106,7 +106,6 @@ if ($continuar && isset($estadoTesoreria)) {
     ?>
     <div class="card drive-card drive-banner mb-4">
         <div class="card-body">
-            <h6>Tesorería -> Cuotas de colegiación</h6>
         <?php
         if (sizeof($cuotas) >= 0) {
             $totalPeriodoActual = 0;
@@ -124,57 +123,23 @@ if ($continuar && isset($estadoTesoreria)) {
                     $totalAnterioresActualizado += $cuota['importeActualizado'];
                 }
             }
+            ?>
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+                <h4 class="mb-0">Cuotas de colegiación</h4>
+                <div class="d-flex align-items-center flex-wrap">
+                    <span id="leyendaSeleccion" class="text-muted mr-2">Seleccione cuotas a abonar</span>
+                    <span id="totalSeleccionadoTexto" class="mr-2" style="display:none;">
+                        <b>Total a pagar:</b> $<span id="totalActualizadoTexto">0</span>
+                    </span>
+                    <button type="submit" form="formCuotas" id="btnSiguiente" class="btn btn-success btn-sm" style="display:none;">Siguiente</button>
+                </div>
+            </div>
+            <?php
             if ($totalPeriodoActualActualizado > 0 || $totalAnterioresActualizado > 0) {
             ?>
-                <form action="generar_intencion_pago.php?id=<?php echo $hashColegiado; ?>" method="POST">
-                    <div class="row alert alert-info">
-                        <?php
-                        $col_boton_gire = 0;
-                        if ($totalPeriodoActualActualizado > 0) {
-                            $cuotasTotales = IMPRIMIR_TRIMESTRAL ? $cuotasPeriodoActual.' de 12 cuotas.<br>' : '';
-                        ?>
-                            <div class="col-md-2">
-                                <b>Per&iacute;odo actual</b> (<?php echo PERIODO_ACTUAL; ?>)
-                                <br>
-                                <b><?php echo $cuotasTotales; ?></b>
-                                <b>Total:</b> $<?php echo number_format($totalPeriodoActualActualizado, 0, ',', '.'); ?>
-                            </div>
-                            <div class="col-md-2">
-                                <a href="imprimirChequera.php?id=<?php echo $hashColegiado; ?>" class="btn btn-dark btn-sm">Imprimir chequera</a>
-                            </div>
-                        <?php     
-                            $col_boton_gire += 4;           
-                        }
-                        if ($totalAnterioresActualizado > 0) {
-                        ?>
-                            <div class="col-md-2">
-                                <b>Per&iacute;odos anteriores</b>
-                                <br>
-                                <b>Total:</b> $<?php echo number_format($totalAnterioresActualizado, 0, ',', '.'); ?>
-                            </div>
-                            <div class="col-md-2">
-                                <a href="imprimirNotaDeuda.php?id=<?php echo $hashColegiado; ?>" class="btn btn-dark btn-sm">Imprimir deuda anterior</a>
-                            </div>
-                        <?php                
-                            $col_boton_gire += 4;
-                        }
-                        $col_boton_gire = 12 - $col_boton_gire;
-                        ?>
-
-                        <!-- ID ÚNICO: bloque_confirmar_top -->
-                        <div class="col-md-<?php echo $col_boton_gire; ?>" id="bloque_confirmar" style="display:none; border-left: 1px solid #ccc;">
-                            <div class="row">
-                                <div class="col-md-7 text-right">
-                                    <label>Total seleccionado:</label>
-                                    <input type="text" id="totalActualizado" name="totalActualizado" value="0" class="form-control text-right" readonly>
-                                </div>
-                                <div class="col-md-5">
-                                    <br>
-                                    <button type="submit" class="btn btn-success">Pagar ahora</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <form id="formCuotas" action="metodo_pago.php?id=<?php echo $hashColegiado; ?>" method="POST">
+                    <input type="hidden" id="totalActualizado" name="totalActualizado" value="<?php echo $totalAnterioresActualizado; ?>">
+                    <input type="hidden" id="tieneDeudaAnterior" name="tieneDeudaAnterior" value="<?php echo ($totalAnterioresActualizado > 0) ? '1' : '0'; ?>">
 
                     <div class="table-responsive">
                     <table id="cuotas" class="table">
@@ -191,17 +156,29 @@ if ($continuar && isset($estadoTesoreria)) {
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($cuotas as $cuota) { ?>
+                            <?php foreach ($cuotas as $cuota) {
+                                $esAnterior = ($cuota['periodo'] <> PERIODO_ACTUAL);
+                            ?>
                             <tr>
                                 <td style="text-align: center;">
-                                    <input type="checkbox" 
-                                           name="cuotas_seleccionadas[]" 
+                                    <input type="checkbox"
+                                           name="cuotas_seleccionadas[]"
                                            value="<?php echo $cuota['idColegiadoDeudaAnualCuota']; ?>"
-                                           id="check_<?php echo $cuota['idColegiadoDeudaAnualCuota']; ?>" 
+                                           id="check_<?php echo $cuota['idColegiadoDeudaAnualCuota']; ?>"
                                            data-importe="<?php echo $cuota['importeActualizado']; ?>"
-                                           onclick="cambiaTotalCuotas(this.dataset.importe, this.id)">
+                                           data-periodo="<?php echo $esAnterior ? 'anterior' : 'actual'; ?>"
+                                           onclick="cambiaTotalCuotas(this.dataset.importe, this.id)"
+                                           <?php echo $esAnterior ? 'checked disabled title="Cuota vencida, debe abonarse"' : ''; ?>>
+                                    <?php if ($esAnterior) { ?>
+                                        <input type="hidden" name="cuotas_seleccionadas[]" value="<?php echo $cuota['idColegiadoDeudaAnualCuota']; ?>">
+                                    <?php } ?>
                                 </td>
-                                <td style="text-align: center;"><?php echo $cuota['periodo'].'-'.$cuota['cuota']; ?></td>
+                                <td style="text-align: center;">
+                                    <?php echo $cuota['periodo'].'-'.$cuota['cuota']; ?>
+                                    <?php if ($esAnterior) { ?>
+                                        <br><span class="badge badge-danger">Vencida</span>
+                                    <?php } ?>
+                                </td>
                                 <td style="text-align: right;"><?php echo number_format($cuota['importeUno'], 0, ',', '.'); ?></td>
                                 <td style="text-align: right;"><?php echo number_format($cuota['importeActualizado'], 0, ',', '.'); ?></td>
                                 <td style="text-align: center;"><?php echo cambiarFechaFormatoParaMostrar($cuota['vencimiento']); ?></td>
@@ -237,6 +214,36 @@ include("../html/footer.php");
 ?>
   </div>
 <script>
+    // Marca si entre las cuotas seleccionadas hay alguna de un período anterior (deuda vencida)
+    function actualizarFlagDeudaAnterior() {
+        let hayDeudaAnterior = $('#cuotas tbody input[type="checkbox"]:checked[data-periodo="anterior"]').length > 0;
+        $('#tieneDeudaAnterior').val(hayDeudaAnterior ? '1' : '0');
+    }
+
+    // Actualiza el input oculto que se envía en el form, el texto del total
+    // visible junto al botón de pago, y alterna la leyenda "Seleccione cuotas a abonar"
+    function actualizarVistaTotal(total) {
+        $('#totalActualizado').val(total);
+        $('#totalActualizadoTexto').text(Number(total).toLocaleString('es-AR'));
+        actualizarFlagDeudaAnterior();
+        if (total > 0) {
+            $('#leyendaSeleccion').hide();
+            $('#totalSeleccionadoTexto').show();
+            $('#btnSiguiente').show();
+        } else {
+            $('#leyendaSeleccion').show();
+            $('#totalSeleccionadoTexto').hide();
+            $('#btnSiguiente').hide();
+        }
+    }
+
+    // Al cargar, las cuotas de períodos anteriores ya vienen marcadas: refleja
+    // ese total inicial en la leyenda/botón sin esperar a que el usuario haga click
+    $(function() {
+        let totalInicial = parseInt($('#totalActualizado').val()) || 0;
+        actualizarVistaTotal(totalInicial);
+    });
+
     function cambiaTotalCuotas(importe, idCheckbox) {
         let total = parseInt($('#totalActualizado').val()) || 0;
         let monto = parseInt(importe) || 0;
@@ -248,26 +255,7 @@ include("../html/footer.php");
             total -= monto;
         }
 
-        // ACTUALIZAMOS EL TOTAL EN EL INPUT OCULTO
-        $('#totalActualizado').val(total);
-
-        // LÓGICA DE APARICIÓN:
-        /*
-        if (total > 0) {
-            $('#bloque_confirmar').fadeIn(); // Esto quita el display:none
-            $('#bloque_forma_pago').fadeIn(); 
-        } else {
-            $('#bloque_confirmar').fadeOut(); // Esto vuelve a poner display:none
-            $('#bloque_forma_pago').fadeOut();
-        }
-        */
-        if (total > 0) {
-            $('#bloque_confirmar').show(); // o .css('display', 'block')
-            $('#bloque_total').show(); // o .css('display', 'block')
-        } else {
-            $('#bloque_confirmar').hide(); // o .css('display', 'none')
-            $('#bloque_total').hide(); // o .css('display', 'none')
-        }
+        actualizarVistaTotal(total);
 
         return total;
     }
@@ -316,21 +304,15 @@ function actualizarTotalMasivo() {
 }
 */
     function seleccionarTodo(source) {
-    // 1. Seleccionamos todos los checkboxes de las cuotas
-    const checkboxes = $('#cuotas tbody input[type="checkbox"]');
-    
+    // 1. Seleccionamos los checkboxes de las cuotas, excepto las vencidas
+    // (esas ya vienen marcadas y deshabilitadas, no se pueden desmarcar)
+    const checkboxes = $('#cuotas tbody input[type="checkbox"]:not([data-periodo="anterior"])');
+
     // 2. Los marcamos o desmarcamos todos según el "maestro"
     checkboxes.prop('checked', source.checked);
 
-    // 3. Calculamos el total una sola vez (fuera del bucle)
-    if (source.checked) {
-        actualizarTotalMasivo();
-    } else {
-        // Si desmarcamos todo, reseteamos a cero directamente
-        $('#totalActualizado').val(0);
-        $('#bloque_confirmar').hide(); // Asegúrate que el ID sea el correcto
-        console.log("Se desmarcaron todas las cuotas.");
-    }
+    // 3. Recalculamos el total (las cuotas vencidas siguen marcadas y suman igual)
+    actualizarTotalMasivo();
 }
 
 function actualizarTotalMasivo() {
@@ -345,14 +327,9 @@ function actualizarTotalMasivo() {
 
     // Redondear y mostrar
     nuevoTotal = Math.round(nuevoTotal * 100) / 100;
-    $('#totalActualizado').val(nuevoTotal);
-    
-    console.log("Total masivo calculado: " + nuevoTotal);
+    actualizarVistaTotal(nuevoTotal);
 
-    // Mostrar el botón de pago
-    if (nuevoTotal > 0) {
-        $('#bloque_confirmar').show();
-    }
+    console.log("Total masivo calculado: " + nuevoTotal);
 }
 
 </script>

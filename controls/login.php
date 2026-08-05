@@ -5,8 +5,18 @@ session_destroy();
 require_once '../html/head.php';
 require_once '../html/header.php';
 ?>
-<div class="row">&nbsp;</div> 
+<div class="row">&nbsp;</div>
 <div class="col-md-12"><hr></div>
+<?php if (isset($_POST['mensaje']) && $_POST['mensaje'] <> "") { ?>
+    <div class="col-md-12">
+        <div class="<?php echo htmlspecialchars($_POST['clase'], ENT_QUOTES, 'UTF-8'); ?> alert-dismissible fade show" role="alert">
+            <?php echo htmlspecialchars($_POST['mensaje'], ENT_QUOTES, 'UTF-8'); ?>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Cerrar">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    </div>
+<?php } ?>
 <div class="col-md-12"><h2>Acceso a tr&aacute;mites.</h2></div>
 <div class="row">
   <div class="col-md-4" style="background-color:#f7f7f7;">

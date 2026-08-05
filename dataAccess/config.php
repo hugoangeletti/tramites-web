@@ -10,7 +10,11 @@ if (file_exists(__DIR__ . '/secrets.php')) {
     require_once __DIR__ . '/secrets.php';
 } else {
     define("CLAVE_SECRETA", getenv('RECAPTCHA_SECRET') ?: '');
+    define("GIRE_API_KEY", getenv('GIRE_API_KEY') ?: '');
+    define("GIRE_ACCESS_TOKEN", getenv('GIRE_ACCESS_TOKEN') ?: '');
 }
+
+define("GIRE_CHECKOUT_URL", "https://api.bdp.gire.com/p/checkout");
 
 define("ENV", 'desa');
 //define("ENV", 'prod');

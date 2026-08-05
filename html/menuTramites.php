@@ -234,7 +234,7 @@ if ($estadoTesoreriaCodigo == 0) {
 
             <div class="list-group-item list-group-item-heading">Tesorer&iacute;a</div>
             <a href="cuotas.php?id=<?php echo $hashColegiado; ?>" class="list-group-item list-group-item-action"><span class="item-dot" style="background-color:#34A853;"></span>Cuotas de colegiaci&oacute;n</a>
-            <?php if ($estadoTesoreriaCodigo == 4) { ?>
+            <?php if (in_array($estadoTesoreriaCodigo, array(4, 5, 6, 7))) { ?>
                 <a href="planDePagos.php?id=<?php echo $hashColegiado; ?>" class="list-group-item list-group-item-action"><span class="item-dot" style="background-color:#34A853;"></span>Plan de Pagos</a>
             <?php } ?>
 
