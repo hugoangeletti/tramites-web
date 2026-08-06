@@ -1,4 +1,16 @@
 <?php
+if (!isset($_SESSION['hashColegiado']) || $_SESSION['hashColegiado'] == '' || !isset($_SESSION['apellidoNombre'])) {
+    // Sesión de login válida pero sin los datos del colegiado cargados (p. ej. se
+    // accedió directo a esta página sin pasar antes por tramites.php). Recargamos
+    // ahí para que se vuelvan a buscar en vez de mostrar la página con datos vacíos.
+    ?>
+    <body onLoad="document.forms['formRecargaSesion'].submit()">
+        <form name="formRecargaSesion" method="POST" action="tramites.php"></form>
+    </body>
+    <?php
+    exit();
+}
+
 $hashColegiado = isset($_SESSION['hashColegiado']) ? $_SESSION['hashColegiado'] : '';
 $tipoEstado = isset($_SESSION['tipoEstado']) ? $_SESSION['tipoEstado'] : '';
 $estadoTesoreriaCodigo = isset($_SESSION['estado_tesoreria_codigo']) ? $_SESSION['estado_tesoreria_codigo'] : null;
