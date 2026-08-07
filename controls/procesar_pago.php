@@ -73,6 +73,7 @@ if ($continuar) {
         "currency"    => "ars",
         "reference"   => $hashIntencionPago,
         "return_url"  => PATH_HOME . "controls/tramites.php",
+        "test"        => (ENV != "prod"),
         "customer"    => array(
             "email"          => $email,
             "name"           => $_SESSION['apellidoNombre'],

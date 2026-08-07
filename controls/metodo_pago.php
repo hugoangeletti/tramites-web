@@ -55,13 +55,15 @@ if ($continuar) {
                 $urlVolver = ($origen == 'plan') ? 'planDePagos.php?id=' . $hashColegiado : 'cuotas.php?id=' . $hashColegiado;
                 ?>
                 <a href="<?php echo $urlImprimir; ?>" class="btn btn-dark mr-2 mb-2">Imprimir cuotas seleccionadas</a>
-                <form action="generar_intencion_pago.php?id=<?php echo $hashColegiado; ?>" method="POST" class="d-inline">
-                    <?php foreach ($cuotasSeleccionadas as $idCuota) { ?>
-                        <input type="hidden" name="cuotas_seleccionadas[]" value="<?php echo htmlspecialchars($idCuota, ENT_QUOTES, 'UTF-8'); ?>">
-                    <?php } ?>
-                    <input type="hidden" name="totalActualizado" value="<?php echo htmlspecialchars($totalActualizado, ENT_QUOTES, 'UTF-8'); ?>">
-                    <button type="submit" class="btn btn-success mb-2">Pagar en línea</button>
-                </form>
+                <?php if (ENV != "prod") { // el pago en línea todavía no se habilita en producción ?>
+                    <form action="generar_intencion_pago.php?id=<?php echo $hashColegiado; ?>" method="POST" class="d-inline">
+                        <?php foreach ($cuotasSeleccionadas as $idCuota) { ?>
+                            <input type="hidden" name="cuotas_seleccionadas[]" value="<?php echo htmlspecialchars($idCuota, ENT_QUOTES, 'UTF-8'); ?>">
+                        <?php } ?>
+                        <input type="hidden" name="totalActualizado" value="<?php echo htmlspecialchars($totalActualizado, ENT_QUOTES, 'UTF-8'); ?>">
+                        <button type="submit" class="btn btn-success mb-2">Pagar en línea</button>
+                    </form>
+                <?php } ?>
             </div>
             <a href="<?php echo $urlVolver; ?>" class="btn btn-secondary btn-sm">Volver</a>
         </div>

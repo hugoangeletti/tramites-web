@@ -67,6 +67,20 @@ if ($continua) {
                     }
                     $tieneCurso = $colegiado['tieneCurso'];
                     $_SESSION['tieneCurso'] = $tieneCurso;
+
+                    if (isset($respuesta['intencion_pago']) && !empty($respuesta['intencion_pago']['estado']) && isset($respuesta['intencion_pago']['datos'])) {
+                        $datosIntencionPago = $respuesta['intencion_pago']['datos'];
+                        $cuotasIntencionPago = isset($datosIntencionPago['Cuotas']) && $datosIntencionPago['Cuotas'] <> ''
+                            ? array_map('trim', explode(',', $datosIntencionPago['Cuotas']))
+                            : array();
+                        $_SESSION['intencionPagoPendiente'] = array(
+                            'hash'   => $datosIntencionPago['Hash'],
+                            'total'  => $datosIntencionPago['TotalPago'],
+                            'cuotas' => $cuotasIntencionPago,
+                        );
+                    } else {
+                        unset($_SESSION['intencionPagoPendiente']);
+                    }
                 } else {
                 ?>
                     <h4 style="color: red;">Usuario NO V&Aacute;LIDO - <?php echo $respuesta['mensaje']; ?></h4>
@@ -158,6 +172,12 @@ if ($continua) {
         ?>
         <div class="col-md-12">
             <?php require_once '../html/menuTramites.php'; ?>
+            <?php if (isset($_SESSION['intencionPagoPendiente'])) { ?>
+                <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap">
+                    <span>Tiene un pago pendiente de confirmaci&oacute;n por <b>$<?php echo number_format($_SESSION['intencionPagoPendiente']['total'], 0, ',', '.'); ?></b>.</span>
+                    <a href="cuotas.php?id=<?php echo $hashColegiado; ?>" class="btn btn-warning btn-sm">Ver detalle</a>
+                </div>
+            <?php } ?>
             <div class="card drive-card drive-banner mb-4">
                 <div class="card-body">
                     <h5 class="drive-heading">Tr&aacute;mites disponibles</h5>

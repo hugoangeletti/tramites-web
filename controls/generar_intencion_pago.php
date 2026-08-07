@@ -13,7 +13,10 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     $hashColegiado = $_SESSION['hashColegiado'];
     $matricula = $_SESSION['matricula'];
 
-    if (isset($_POST['cuotas_seleccionadas']) && sizeof($_POST['cuotas_seleccionadas']) > 0) {
+    if (isset($_SESSION['intencionPagoPendiente'])) {
+        $continuar = FALSE;
+        $mensaje .= "Ya tiene una intención de pago pendiente. Debe abonarla o anularla antes de generar una nueva.";
+    } else if (isset($_POST['cuotas_seleccionadas']) && sizeof($_POST['cuotas_seleccionadas']) > 0) {
         $cuotas_seleccionadas = $_POST['cuotas_seleccionadas'];
     } else {
         $continuar = FALSE;
