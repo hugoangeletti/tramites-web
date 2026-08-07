@@ -41,13 +41,13 @@ if ($continuar) {
     curl_close($ch);
 
     $rta = json_decode($result, true);
-    if (!$err && isset($rta['respuesta']) && $rta['respuesta']['codigo'] == 1) {
+    if (!$err && isset($rta['codigo']) && $rta['codigo'] == 1) {
         unset($_SESSION['intencionPagoPendiente']);
         $mensaje = "La intenci&oacute;n de pago fue anulada correctamente.";
         $clase = "alert alert-success";
     } else {
         $continuar = FALSE;
-        $mensaje = (isset($rta['respuesta']['mensaje']) && $rta['respuesta']['mensaje'] <> '') ? $rta['respuesta']['mensaje'] : "No se pudo anular la intenci&oacute;n de pago. Intente nuevamente.";
+        $mensaje = (isset($rta['mensaje']) && $rta['mensaje'] <> '' && $rta['mensaje'] <> 'OK') ? $rta['mensaje'] : "No se pudo anular la intenci&oacute;n de pago. Intente nuevamente.";
         $clase = "alert alert-danger";
     }
 } else {
