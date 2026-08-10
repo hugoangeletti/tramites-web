@@ -4,13 +4,25 @@ session_unset();
 session_destroy();
 require_once '../html/head.php';
 require_once '../html/header.php';
+
+// El mensaje puede llegar por POST (desde control.php) o por GET, cuando
+// permisoLogueado() redirige a index.php porque la sesión ya no es válida
+$mensajeLogin = "";
+$claseLogin = "alert alert-danger";
+if (isset($_POST['mensaje']) && $_POST['mensaje'] <> "") {
+    $mensajeLogin = $_POST['mensaje'];
+    $claseLogin = isset($_POST['clase']) ? $_POST['clase'] : $claseLogin;
+} else if (isset($_GET['error']) && $_GET['error'] == 'ok3') {
+    $mensajeLogin = "Su sesión expiró, vuelva a ingresar.";
+    $claseLogin = "alert alert-warning";
+}
 ?>
 <div class="row">&nbsp;</div>
 <div class="col-md-12"><hr></div>
-<?php if (isset($_POST['mensaje']) && $_POST['mensaje'] <> "") { ?>
+<?php if ($mensajeLogin <> "") { ?>
     <div class="col-md-12">
-        <div class="<?php echo htmlspecialchars($_POST['clase'], ENT_QUOTES, 'UTF-8'); ?> alert-dismissible fade show" role="alert">
-            <?php echo htmlspecialchars($_POST['mensaje'], ENT_QUOTES, 'UTF-8'); ?>
+        <div class="<?php echo htmlspecialchars($claseLogin, ENT_QUOTES, 'UTF-8'); ?> alert-dismissible fade show" role="alert">
+            <?php echo htmlspecialchars($mensajeLogin, ENT_QUOTES, 'UTF-8'); ?>
             <button type="button" class="close" data-dismiss="alert" aria-label="Cerrar">
                 <span aria-hidden="true">&times;</span>
             </button>

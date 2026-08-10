@@ -16,12 +16,12 @@ if (file_exists(__DIR__ . '/secrets.php')) {
 
 define("GIRE_CHECKOUT_URL", "https://api.bdp.gire.com/p/checkout");
 
-//define("ENV", 'desa');
-define("ENV", 'prod');
+define("ENV", 'desa');
+//define("ENV", 'prod');
 
 // Mientras la integración con Gire no esté habilitada, los botones de pago
 // en línea no se muestran en ningún entorno. Poner en TRUE para activarlos.
-define("MOSTRAR_PAGO_EN_LINEA", FALSE);
+define("MOSTRAR_PAGO_EN_LINEA", TRUE);
 
 define("PATH_HOME", (ENV == "prod") ? "http://www.colmed1.com.ar/tramites-web/" : "http://localhost/tramites-web/");
 
