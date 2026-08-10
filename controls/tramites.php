@@ -14,11 +14,7 @@ if ($continua) {
     set_time_limit(0);
 
     $ch = curl_init();
-    if (ENV == "prod") {
-        curl_setopt($ch, CURLOPT_URL, 'http://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/buscar_colegiado.php?matricula='.$matricula);
-    } else {
-        curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/buscar_colegiado.php?matricula='.$matricula);
-    }
+    curl_setopt($ch, CURLOPT_URL, URL_WS.'/colegiado/buscar_colegiado.php?matricula='.$matricula);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
     //curl_setopt($ch, CURLOPT_POSTFIELDS,$data_string);

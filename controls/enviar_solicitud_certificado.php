@@ -45,11 +45,7 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
         $data_string = json_encode($data);
 
         // URL de la API REST donde se enviarán los datos
-        if (ENV == "prod") {
-            $url = 'http://webservices.colmed1.com.ar/colegio/ws-colmed/certificado/genera_certificado.php';
-        } else {
-            $url = 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/certificado/genera_certificado.php';
-        }
+        $url = URL_WS.'/certificado/genera_certificado.php';
 
         // Inicializar cURL
         $ch = curl_init($url);

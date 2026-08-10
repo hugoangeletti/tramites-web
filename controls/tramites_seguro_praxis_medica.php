@@ -41,11 +41,7 @@ if ($continuar) {
 
     $ch = curl_init();
     
-    if (ENV == "prod") {
-        curl_setopt($ch, CURLOPT_URL, 'http://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/solicitar_ampliacion_seguro.php?matricula='.$matricula.'&tipoTelefono='.$tipoTelefono.'&telefono='.$telefono);
-    } else {
-        curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/solicitar_ampliacion_seguro.php?matricula='.$matricula.'&tipoTelefono='.$tipoTelefono.'&telefono='.$telefono);
-    }
+    curl_setopt($ch, CURLOPT_URL, URL_WS.'/colegiado/solicitar_ampliacion_seguro.php?matricula='.$matricula.'&tipoTelefono='.$tipoTelefono.'&telefono='.$telefono);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
     //curl_setopt($ch, CURLOPT_POSTFIELDS,$data_string);

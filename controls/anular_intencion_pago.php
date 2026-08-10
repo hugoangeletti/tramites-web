@@ -22,11 +22,7 @@ if ($continuar) {
     $data = array("hashIntencionPago" => $hashIntencionPago);
     $dataString = json_encode($data);
 
-    if (ENV == "prod") {
-        $url = 'http://webservices.colmed1.com.ar/colegio/ws-colmed/cobranza/anular_intencion_pago.php';
-    } else {
-        $url = 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/cobranza/anular_intencion_pago.php';
-    }
+    $url = URL_WS.'/cobranza/anular_intencion_pago.php';
 
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");

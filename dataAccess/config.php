@@ -16,10 +16,19 @@ if (file_exists(__DIR__ . '/secrets.php')) {
 
 define("GIRE_CHECKOUT_URL", "https://api.bdp.gire.com/p/checkout");
 
-define("ENV", 'desa');
-//define("ENV", 'prod');
+//define("ENV", 'desa');
+define("ENV", 'prod');
+
+// Mientras la integración con Gire no esté habilitada, los botones de pago
+// en línea no se muestran en ningún entorno. Poner en TRUE para activarlos.
+define("MOSTRAR_PAGO_EN_LINEA", FALSE);
 
 define("PATH_HOME", (ENV == "prod") ? "http://www.colmed1.com.ar/tramites-web/" : "http://localhost/tramites-web/");
+
+// URL base del web service, usada por todos los controladores
+define("URL_WS", (ENV == "prod")
+    ? "http://webservices.colmed1.com.ar/colegio/ws-colmed"
+    : "http://www.colmed1.com/desarrollo/colegio/ws-colmed");
 
 //obtengo el periodo actual
 $periodoActual = date('Y');

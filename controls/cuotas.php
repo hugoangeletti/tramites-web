@@ -20,11 +20,7 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
 
     $ch = curl_init();
     
-    if (ENV == "prod") {
-        curl_setopt($ch, CURLOPT_URL, 'http://webservices.colmed1.com.ar/colegio/ws-colmed/colegiado/buscar_cuotas_colegiacion.php?idColegiado='.$idColegiado);
-    } else {
-        curl_setopt($ch, CURLOPT_URL, 'http://www.colmed1.com/desarrollo/colegio/ws-colmed/colegiado/buscar_cuotas_colegiacion.php?idColegiado='.$idColegiado);
-    }
+    curl_setopt($ch, CURLOPT_URL, URL_WS.'/colegiado/buscar_cuotas_colegiacion.php?idColegiado='.$idColegiado);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
     //curl_setopt($ch, CURLOPT_POSTFIELDS,$data_string);
@@ -125,7 +121,7 @@ if ($continuar && isset($estadoTesoreria)) {
                     Puede completar el pago o anularla para seleccionar otras cuotas.
                 </div>
                 <div class="mt-2 mt-md-0">
-                    <?php if (ENV != "prod") { // el pago en línea todavía no se habilita en producción ?>
+                    <?php if (MOSTRAR_PAGO_EN_LINEA) { ?>
                         <form action="procesar_pago.php?id=<?php echo $hashColegiado; ?>" method="POST" class="d-inline">
                             <input type="hidden" name="hashIntencionPago" value="<?php echo htmlspecialchars($intencionPendiente['hash'], ENT_QUOTES, 'UTF-8'); ?>">
                             <input type="hidden" name="totalActualizado" value="<?php echo htmlspecialchars($intencionPendiente['total'], ENT_QUOTES, 'UTF-8'); ?>">
