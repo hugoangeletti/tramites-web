@@ -16,14 +16,20 @@ if (file_exists(__DIR__ . '/secrets.php')) {
 
 define("GIRE_CHECKOUT_URL", "https://api.bdp.gire.com/p/checkout");
 
-define("ENV", 'desa');
-//define("ENV", 'prod');
+// Modo prueba del checkout de Gire (permite operar con las tarjetas de test).
+// Por ahora queda en TRUE en todos los entornos, incluido producción.
+// Poner en FALSE cuando se habiliten los pagos reales.
+define("GIRE_MODO_TEST", TRUE);
+
+//define("ENV", 'desa');
+define("ENV", 'prod');
 
 // Mientras la integración con Gire no esté habilitada, los botones de pago
 // en línea no se muestran en ningún entorno. Poner en TRUE para activarlos.
 define("MOSTRAR_PAGO_EN_LINEA", TRUE);
 
-define("PATH_HOME", (ENV == "prod") ? "http://www.colmed1.com.ar/tramites-web/" : "http://localhost/tramites-web/");
+//define("PATH_HOME", (ENV == "prod") ? "http://www.colmed1.com.ar/tramites-web/" : "http://localhost/tramites-web/");
+define("PATH_HOME", (ENV == "prod") ? "http://www.colmed1.com.ar/portal/" : "http://localhost/tramites-web/");
 
 // URL base del web service, usada por todos los controladores
 define("URL_WS", (ENV == "prod")

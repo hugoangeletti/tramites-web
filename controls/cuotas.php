@@ -111,28 +111,42 @@ if ($continuar && isset($estadoTesoreria)) {
     <?php if (isset($_SESSION['intencionPagoPendiente'])) {
         $intencionPendiente = $_SESSION['intencionPagoPendiente'];
         $cantCuotasPendientes = sizeof($intencionPendiente['cuotas']);
+        // Si ya se envió a Gire, el pago espera la rendición diaria: no se puede
+        // volver a pagar ni anular, solo se informa la situación
+        $intencionEnviada = !empty($intencionPendiente['enviada']);
     ?>
         <div class="alert alert-warning mb-4">
             <div class="d-flex justify-content-between align-items-center flex-wrap">
                 <div>
-                    Ya tiene una <b>intenci&oacute;n de pago pendiente</b> por
-                    <b>$<?php echo number_format($intencionPendiente['total'], 0, ',', '.'); ?></b>
-                    (<?php echo $cantCuotasPendientes; ?> cuota<?php echo $cantCuotasPendientes == 1 ? '' : 's'; ?>).
-                    Puede completar el pago o anularla para seleccionar otras cuotas.
-                </div>
-                <div class="mt-2 mt-md-0">
-                    <?php if (MOSTRAR_PAGO_EN_LINEA) { ?>
-                        <form action="procesar_pago.php?id=<?php echo $hashColegiado; ?>" method="POST" class="d-inline">
-                            <input type="hidden" name="hashIntencionPago" value="<?php echo htmlspecialchars($intencionPendiente['hash'], ENT_QUOTES, 'UTF-8'); ?>">
-                            <input type="hidden" name="totalActualizado" value="<?php echo htmlspecialchars($intencionPendiente['total'], ENT_QUOTES, 'UTF-8'); ?>">
-                            <button type="submit" class="btn btn-success btn-sm">Pagar</button>
-                        </form>
+                    <?php if ($intencionEnviada) { ?>
+                        Tiene un pago de
+                        <b>$<?php echo number_format($intencionPendiente['total'], 0, ',', '.'); ?></b>
+                        (<?php echo $cantCuotasPendientes; ?> cuota<?php echo $cantCuotasPendientes == 1 ? '' : 's'; ?>)
+                        <b>pendiente de acreditaci&oacute;n</b>. La confirmaci&oacute;n se realiza con la
+                        rendici&oacute;n diaria de la cobranza, por lo que las cuotas pueden seguir figurando
+                        como impagas hasta que se procese. No es necesario que vuelva a abonarlas.
+                    <?php } else { ?>
+                        Ya tiene una <b>intenci&oacute;n de pago pendiente</b> por
+                        <b>$<?php echo number_format($intencionPendiente['total'], 0, ',', '.'); ?></b>
+                        (<?php echo $cantCuotasPendientes; ?> cuota<?php echo $cantCuotasPendientes == 1 ? '' : 's'; ?>).
+                        Puede completar el pago o anularla para seleccionar otras cuotas.
                     <?php } ?>
-                    <form action="anular_intencion_pago.php?id=<?php echo $hashColegiado; ?>" method="POST" class="d-inline" onsubmit="return confirm('¿Confirma que desea anular la intención de pago pendiente?');">
-                        <input type="hidden" name="hashIntencionPago" value="<?php echo htmlspecialchars($intencionPendiente['hash'], ENT_QUOTES, 'UTF-8'); ?>">
-                        <button type="submit" class="btn btn-outline-danger btn-sm">Anular</button>
-                    </form>
                 </div>
+                <?php if (!$intencionEnviada) { ?>
+                    <div class="mt-2 mt-md-0">
+                        <?php if (MOSTRAR_PAGO_EN_LINEA) { ?>
+                            <form action="procesar_pago.php?id=<?php echo $hashColegiado; ?>" method="POST" class="d-inline">
+                                <input type="hidden" name="hashIntencionPago" value="<?php echo htmlspecialchars($intencionPendiente['hash'], ENT_QUOTES, 'UTF-8'); ?>">
+                                <input type="hidden" name="totalActualizado" value="<?php echo htmlspecialchars($intencionPendiente['total'], ENT_QUOTES, 'UTF-8'); ?>">
+                                <button type="submit" class="btn btn-success btn-sm">Pagar</button>
+                            </form>
+                        <?php } ?>
+                        <form action="anular_intencion_pago.php?id=<?php echo $hashColegiado; ?>" method="POST" class="d-inline" onsubmit="return confirm('¿Confirma que desea anular la intención de pago pendiente?');">
+                            <input type="hidden" name="hashIntencionPago" value="<?php echo htmlspecialchars($intencionPendiente['hash'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Anular</button>
+                        </form>
+                    </div>
+                <?php } ?>
             </div>
         </div>
     <?php } ?>

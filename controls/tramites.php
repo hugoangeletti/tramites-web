@@ -3,6 +3,7 @@ require_once '../dataAccess/config.php';
 permisoLogueado();
 require_once '../html/head.php';
 require_once '../html/header.php';
+require_once '../dataAccess/funcionesPhp.php';
 
 $matricula = $_SESSION['matricula'];
 $continua = TRUE;
@@ -64,16 +65,9 @@ if ($continua) {
                     $tieneCurso = $colegiado['tieneCurso'];
                     $_SESSION['tieneCurso'] = $tieneCurso;
 
-                    if (isset($respuesta['intencion_pago']) && !empty($respuesta['intencion_pago']['estado']) && isset($respuesta['intencion_pago']['datos'])) {
-                        $datosIntencionPago = $respuesta['intencion_pago']['datos'];
-                        $cuotasIntencionPago = isset($datosIntencionPago['Cuotas']) && $datosIntencionPago['Cuotas'] <> ''
-                            ? array_map('trim', explode(',', $datosIntencionPago['Cuotas']))
-                            : array();
-                        $_SESSION['intencionPagoPendiente'] = array(
-                            'hash'   => $datosIntencionPago['Hash'],
-                            'total'  => $datosIntencionPago['TotalPago'],
-                            'cuotas' => $cuotasIntencionPago,
-                        );
+                    $intencionPagoPendiente = armarIntencionPagoPendiente($respuesta);
+                    if ($intencionPagoPendiente !== NULL) {
+                        $_SESSION['intencionPagoPendiente'] = $intencionPagoPendiente;
                     } else {
                         unset($_SESSION['intencionPagoPendiente']);
                     }
@@ -170,7 +164,11 @@ if ($continua) {
             <?php require_once '../html/menuTramites.php'; ?>
             <?php if (isset($_SESSION['intencionPagoPendiente'])) { ?>
                 <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap">
-                    <span>Tiene un pago pendiente de confirmaci&oacute;n por <b>$<?php echo number_format($_SESSION['intencionPagoPendiente']['total'], 0, ',', '.'); ?></b>.</span>
+                    <?php if (!empty($_SESSION['intencionPagoPendiente']['enviada'])) { ?>
+                        <span>Tiene un pago de <b>$<?php echo number_format($_SESSION['intencionPagoPendiente']['total'], 0, ',', '.'); ?></b> pendiente de acreditaci&oacute;n.</span>
+                    <?php } else { ?>
+                        <span>Tiene un pago iniciado por <b>$<?php echo number_format($_SESSION['intencionPagoPendiente']['total'], 0, ',', '.'); ?></b> que a&uacute;n no complet&oacute;.</span>
+                    <?php } ?>
                     <a href="cuotas.php?id=<?php echo $hashColegiado; ?>" class="btn btn-warning btn-sm">Ver detalle</a>
                 </div>
             <?php } ?>

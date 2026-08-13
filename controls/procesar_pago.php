@@ -35,6 +35,20 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     $continuar = FALSE;
 }
 
+// Si la intención ya se envió a Gire, el pago espera la rendición diaria: no se
+// genera un checkout nuevo para evitar que se abone dos veces la misma deuda
+if ($continuar && !empty($_SESSION['intencionPagoPendiente']['enviada'])) {
+    $continuar = FALSE;
+    $mensaje .= "Este pago ya fue enviado y est&aacute; pendiente de acreditaci&oacute;n. No es necesario volver a abonarlo.";
+}
+
+// Sin credenciales de Gire la API responde 401 "el API Key es obligatorio", así que
+// se avisa antes de llamarla. secrets.php no viaja por git: hay que cargarlo en cada servidor.
+if ($continuar && (trim(GIRE_API_KEY) == '' || trim(GIRE_ACCESS_TOKEN) == '')) {
+    $continuar = FALSE;
+    $mensaje .= "Faltan las credenciales de Gire en dataAccess/secrets.php de este servidor.";
+}
+
 if ($continuar) {
     // Buscamos el teléfono y el mail de contacto del colegiado para armar el "customer" de Gire
     ini_set('xdebug.var_display_max_depth', -1);
@@ -68,8 +82,8 @@ if ($continuar) {
         "description" => "Pago de cuotas - Colegio de Médicos Distrito I",
         "currency"    => "ars",
         "reference"   => $hashIntencionPago,
-        "return_url"  => PATH_HOME . "controls/tramites.php",
-        "test"        => (ENV != "prod"),
+        "return_url"  => PATH_HOME . "controls/pago_procesado.php",
+        "test"        => GIRE_MODO_TEST,
         "customer"    => array(
             "email"          => $email,
             "name"           => $_SESSION['apellidoNombre'],
@@ -86,22 +100,52 @@ if ($continuar) {
     curl_setopt($ch, CURLOPT_POSTFIELDS, $dataString);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+    // Los nombres de los headers van en minúscula, tal cual los documenta Gire
     curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        'X-Api-Key: ' . GIRE_API_KEY,
-        'X-Access-Token: ' . GIRE_ACCESS_TOKEN,
+        'x-api-key: ' . GIRE_API_KEY,
+        'x-access-token: ' . GIRE_ACCESS_TOKEN,
         'Content-Type: application/json',
         'Content-Length: ' . strlen($dataString)
     ));
     $result = curl_exec($ch);
     $err = curl_error($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
     $rta = json_decode($result, true);
     if (!$err && isset($rta['result']) && $rta['result'] === true && isset($rta['data']['url'])) {
         $urlCheckout = $rta['data']['url'];
+
+        // Se avisa al WS que la intención ya se envió a Gire, para que no se
+        // pueda volver a pagar ni anular mientras espera la rendición diaria
+        $dataEnviada = json_encode(array("hashIntencionPago" => $hashIntencionPago));
+        $chEnviada = curl_init(URL_WS.'/cobranza/marcar_intencion_enviada.php');
+        curl_setopt($chEnviada, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($chEnviada, CURLOPT_POSTFIELDS, $dataEnviada);
+        curl_setopt($chEnviada, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($chEnviada, CURLOPT_TIMEOUT, 10);
+        curl_setopt($chEnviada, CURLOPT_HTTPHEADER, array(
+            'Content-Type: application/json',
+            'Content-Length: ' . strlen($dataEnviada)
+        ));
+        curl_exec($chEnviada);
+        curl_close($chEnviada);
+
+        // La sesión se actualiza igual, así el aviso ya sale correcto al volver
+        if (isset($_SESSION['intencionPagoPendiente'])) {
+            $_SESSION['intencionPagoPendiente']['enviada'] = TRUE;
+        }
     } else {
         $continuar = FALSE;
         $mensaje .= "No se pudo generar el checkout de pago. Intente nuevamente.";
+        // Mientras se esté probando, se muestra lo que devolvió Gire para poder diagnosticar
+        if (GIRE_MODO_TEST) {
+            if ($err) {
+                $mensaje .= " Error de conexi&oacute;n: " . $err;
+            } else {
+                $mensaje .= " Respuesta de la API (HTTP " . $httpCode . "): " . $result;
+            }
+        }
     }
 }
 

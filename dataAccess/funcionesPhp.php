@@ -398,5 +398,44 @@ function getRealIP()
    }
    
    return $client_ip;
-   
+
+}
+
+/**
+ * Normaliza el nodo "intencion_pago" que devuelve el WS y arma el arreglo que se
+ * guarda en sesión. Contempla las dos formas en que puede llegar: plana
+ * (Hash, TotalPago, Cuotas, Enviada) o envuelta en estado/datos.
+ * Devuelve NULL cuando no hay intención de pago pendiente.
+ */
+function armarIntencionPagoPendiente($respuestaWs)
+{
+    if (!isset($respuestaWs['intencion_pago']) || !is_array($respuestaWs['intencion_pago'])) {
+        return NULL;
+    }
+
+    $nodo = $respuestaWs['intencion_pago'];
+
+    // Forma con envoltorio: {estado, mensaje, datos:{...}}
+    if (isset($nodo['datos'])) {
+        if (isset($nodo['estado']) && !$nodo['estado']) {
+            return NULL;
+        }
+        $nodo = $nodo['datos'];
+    }
+
+    if (!is_array($nodo) || !isset($nodo['Hash']) || $nodo['Hash'] == '') {
+        return NULL;
+    }
+
+    $cuotas = (isset($nodo['Cuotas']) && $nodo['Cuotas'] <> '')
+        ? array_map('trim', explode(',', $nodo['Cuotas']))
+        : array();
+
+    return array(
+        'hash'    => $nodo['Hash'],
+        'total'   => isset($nodo['TotalPago']) ? $nodo['TotalPago'] : 0,
+        'cuotas'  => $cuotas,
+        // Si ya se envió a Gire, el pago espera la rendición diaria
+        'enviada' => isset($nodo['Enviada']) ? filter_var($nodo['Enviada'], FILTER_VALIDATE_BOOLEAN) : FALSE,
+    );
 }

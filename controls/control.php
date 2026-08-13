@@ -91,7 +91,6 @@ if ($continua && isset($_POST['matricula']) && isset($_POST['dni']) && isset($_P
     set_time_limit(0);
 
     $ch = curl_init();
-    
     curl_setopt($ch, CURLOPT_URL, URL_WS.'/usuario/validar-usuario.php?matricula='.urlencode($matricula).'&dni='.urlencode($dni).'&mail='.urlencode($mail));
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
@@ -106,7 +105,7 @@ if ($continua && isset($_POST['matricula']) && isset($_POST['dni']) && isset($_P
     if ($err) {
     ?>
         <div class="row alert alert-danger">
-            <div class="col-md-12 text-left">Disculpe las molestias. Momentaneamente fuera de servicio, intente m&aacute;s tarde</div>
+            <div class="col-md-12 text-left">Disculpe las molestias. Momentaneamente fuera de servicio, intente m&aacute;s tarde.</div>
         </div>
     <?php
         //echo "cURL Error #:" . $err;
@@ -177,7 +176,7 @@ if ($continua && isset($_POST['matricula']) && isset($_POST['dni']) && isset($_P
             ?>
             <body onLoad="document.forms['myForm'].submit()">
                 <form name="myForm" method="POST" action="login.php">
-                    <input type="hidden" name="mensaje" value="Disculpe las molestias. Momentaneamente fuera de servicio, intente m&aacute;s tarde.">
+                    <input type="hidden" name="mensaje" value="Disculpe las molestias. Momentaneamente fuera de servicio, intente m&aacute;s tarde...">
                     <input type="hidden" name="clase" value="alert alert-danger">
                 </form>
             </body>

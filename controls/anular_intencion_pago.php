@@ -9,7 +9,11 @@ $continuar = true;
 if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     $hashColegiado = $_SESSION['hashColegiado'];
 
-    if (isset($_POST['hashIntencionPago']) && $_POST['hashIntencionPago'] <> '') {
+    if (!empty($_SESSION['intencionPagoPendiente']['enviada'])) {
+        // Ya se envió a Gire: queda a la espera de la rendición, no se puede anular
+        $continuar = FALSE;
+        $mensajeGuard = "El pago ya fue enviado y est&aacute; pendiente de acreditaci&oacute;n, no puede anularse.";
+    } else if (isset($_POST['hashIntencionPago']) && $_POST['hashIntencionPago'] <> '') {
         $hashIntencionPago = $_POST['hashIntencionPago'];
     } else {
         $continuar = FALSE;
@@ -47,7 +51,7 @@ if ($continuar) {
         $clase = "alert alert-danger";
     }
 } else {
-    $mensaje = "Solicitud inv&aacute;lida.";
+    $mensaje = isset($mensajeGuard) ? $mensajeGuard : "Solicitud inv&aacute;lida.";
     $clase = "alert alert-danger";
 }
 
