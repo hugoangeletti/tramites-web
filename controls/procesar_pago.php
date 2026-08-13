@@ -114,10 +114,10 @@ if ($continuar) {
 
     $rta = json_decode($result, true);
     if (!$err && isset($rta['result']) && $rta['result'] === true && isset($rta['data']['url'])) {
-        $urlCheckout = $rta['data']['url'];
-
-        // Se avisa al WS que la intención ya se envió a Gire, para que no se
-        // pueda volver a pagar ni anular mientras espera la rendición diaria
+        // Antes de mandar al colegiado a pagar, se marca la intención como enviada
+        // en el WS. Si eso falla no se lo deriva a Gire: si pagara, el sistema
+        // seguiría creyendo que la intención está sin usar y podría abonarla dos veces.
+        // El checkout que queda sin usar en Gire caduca solo por su timeout.
         $dataEnviada = json_encode(array("hashIntencionPago" => $hashIntencionPago));
         $chEnviada = curl_init(URL_WS.'/cobranza/marcar_intencion_enviada.php');
         curl_setopt($chEnviada, CURLOPT_CUSTOMREQUEST, "POST");
@@ -128,12 +128,25 @@ if ($continuar) {
             'Content-Type: application/json',
             'Content-Length: ' . strlen($dataEnviada)
         ));
-        curl_exec($chEnviada);
+        $resultEnviada = curl_exec($chEnviada);
+        $errEnviada = curl_error($chEnviada);
         curl_close($chEnviada);
 
-        // La sesión se actualiza igual, así el aviso ya sale correcto al volver
-        if (isset($_SESSION['intencionPagoPendiente'])) {
-            $_SESSION['intencionPagoPendiente']['enviada'] = TRUE;
+        $rtaEnviada = json_decode($resultEnviada, true);
+        if (!$errEnviada && isset($rtaEnviada['codigo']) && $rtaEnviada['codigo'] == 1) {
+            $urlCheckout = $rta['data']['url'];
+            // La sesión se actualiza igual, así el aviso ya sale correcto al volver
+            if (isset($_SESSION['intencionPagoPendiente'])) {
+                $_SESSION['intencionPagoPendiente']['enviada'] = TRUE;
+            }
+        } else {
+            $continuar = FALSE;
+            $mensaje .= "No se pudo registrar el inicio del pago. Vuelva a intentarlo en unos minutos.";
+            if (GIRE_MODO_TEST) {
+                $mensaje .= $errEnviada
+                    ? " Error de conexi&oacute;n con el WS: " . $errEnviada
+                    : " Respuesta del WS: " . $resultEnviada;
+            }
         }
     } else {
         $continuar = FALSE;
