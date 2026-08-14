@@ -46,6 +46,17 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
             //var_dump($rta);
             if (isset($rta) && isset($rta['respuesta'])) {
                 $respuesta = $rta['respuesta'];
+
+                // Se refresca acá y no solo en tramites.php/pago_procesado.php: si el
+                // colegiado entra directo a esta página, el dato en sesión puede estar
+                // desactualizado (por ejemplo, si la intención se anuló desde otro lado)
+                $intencionPagoPendiente = armarIntencionPagoPendiente($respuesta);
+                if ($intencionPagoPendiente !== NULL) {
+                    $_SESSION['intencionPagoPendiente'] = $intencionPagoPendiente;
+                } else {
+                    unset($_SESSION['intencionPagoPendiente']);
+                }
+
                 if ($respuesta['codigo'] == 1) {
                     $cuotas = $respuesta['datos'];
                     $estadoTesoreria = $respuesta['codigo'];

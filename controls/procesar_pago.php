@@ -118,7 +118,28 @@ if ($continuar) {
         // en el WS. Si eso falla no se lo deriva a Gire: si pagara, el sistema
         // seguiría creyendo que la intención está sin usar y podría abonarla dos veces.
         // El checkout que queda sin usar en Gire caduca solo por su timeout.
-        $dataEnviada = json_encode(array("hashIntencionPago" => $hashIntencionPago));
+        // En este punto todavía no hay transacción: el idGire que se guarda es el
+        // identificador del checkout que devolvió Gire, y el resultado real del pago
+        // lo informa pago_procesado.php cuando el colegiado vuelve del retorno.
+        // De la respuesta se guardan solo los datos de la operación; se descarta
+        // paymentMethods, que son los medios de pago disponibles con sus logos.
+        $datosCheckout = array();
+        foreach (array('id', 'url', 'currency', 'total', 'timeout', 'created') as $campo) {
+            if (isset($rta['data'][$campo])) {
+                $datosCheckout[$campo] = $rta['data'][$campo];
+            }
+        }
+        $respuestaGireResumida = json_encode(array(
+            "result" => $rta['result'],
+            "data"   => $datosCheckout
+        ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        $dataEnviada = json_encode(array(
+            "hashIntencionPago" => $hashIntencionPago,
+            "estado"            => "enviada",
+            "idGire"            => isset($rta['data']['id']) ? $rta['data']['id'] : '',
+            "respuestaGire"     => $respuestaGireResumida
+        ));
         $chEnviada = curl_init(URL_WS.'/cobranza/marcar_intencion_enviada.php');
         curl_setopt($chEnviada, CURLOPT_CUSTOMREQUEST, "POST");
         curl_setopt($chEnviada, CURLOPT_POSTFIELDS, $dataEnviada);
@@ -135,10 +156,15 @@ if ($continuar) {
         $rtaEnviada = json_decode($resultEnviada, true);
         if (!$errEnviada && isset($rtaEnviada['codigo']) && $rtaEnviada['codigo'] == 1) {
             $urlCheckout = $rta['data']['url'];
-            // La sesión se actualiza igual, así el aviso ya sale correcto al volver
-            if (isset($_SESSION['intencionPagoPendiente'])) {
-                $_SESSION['intencionPagoPendiente']['enviada'] = TRUE;
-            }
+            // Se asegura (no solo actualiza) el dato en sesión: si el pago arrancó
+            // recién ahora (no desde una intención pendiente ya cargada), pago_procesado.php
+            // igual necesita saber a qué hashIntencionPago informarle el resultado al volver
+            $_SESSION['intencionPagoPendiente'] = array(
+                'hash'    => $hashIntencionPago,
+                'total'   => $totalActualizado,
+                'cuotas'  => isset($_SESSION['intencionPagoPendiente']['cuotas']) ? $_SESSION['intencionPagoPendiente']['cuotas'] : array(),
+                'enviada' => TRUE,
+            );
         } else {
             $continuar = FALSE;
             $mensaje .= "No se pudo registrar el inicio del pago. Vuelva a intentarlo en unos minutos.";
