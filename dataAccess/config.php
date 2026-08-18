@@ -1,4 +1,28 @@
 <?php
+// ENV se define antes de arrancar la sesión porque en producción hace falta
+// configurar la cookie de sesión (SameSite=None; Secure) con session_set_cookie_params()
+// antes de llamar a session_start() — no se puede hacer después.
+//define("ENV", 'desa');
+define("ENV", 'prod');
+
+if (ENV == "prod") {
+    // Por defecto, los navegadores tratan la cookie de sesión como SameSite=Lax,
+    // que NO viaja cuando se vuelve de un salto entre dominios hecho por POST —
+    // así redirige típicamente la verificación 3D Secure del banco al volver del
+    // pago con Gire (por eso la sesión se perdía en mobile con tarjeta, pero no en
+    // desktop). SameSite=None arregla eso, pero exige que la cookie sea Secure
+    // (solo viaja por HTTPS): por eso PATH_HOME pasa a https:// más abajo, y hace
+    // falta que el servidor redirija http-> https siempre (ver .htaccess).
+    session_set_cookie_params(array(
+        'lifetime' => 0,
+        'path'     => '/',
+        'domain'   => '',
+        'secure'   => true,
+        'httponly' => true,
+        'samesite' => 'None',
+    ));
+}
+
 session_start(); //comentar esta linea si no se trabaja con sesiones
 //require_once 'dataAccess/sessionControl.php';
 ini_set('default_charset', 'utf8');
@@ -21,15 +45,14 @@ define("GIRE_CHECKOUT_URL", "https://api.bdp.gire.com/p/checkout");
 // Poner en FALSE cuando se habiliten los pagos reales.
 define("GIRE_MODO_TEST", TRUE);
 
-//define("ENV", 'desa');
-define("ENV", 'prod');
-
 // Mientras la integración con Gire no esté habilitada, los botones de pago
 // en línea no se muestran en ningún entorno. Poner en TRUE para activarlos.
 define("MOSTRAR_PAGO_EN_LINEA", TRUE);
 
-//define("PATH_HOME", (ENV == "prod") ? "http://www.colmed1.com.ar/tramites-web/" : "http://localhost/tramites-web/");
-define("PATH_HOME", (ENV == "prod") ? "http://www.colmed1.com.ar/portal/" : "http://localhost/tramites-web/");
+// En prod va HTTPS: la cookie Secure (ver arriba) no se guarda si el sitio se
+// sirve por HTTP. El WS interno (URL_WS, más abajo) sigue sin soportar HTTPS,
+// pero es un dominio y una conexión servidor-a-servidor distinta a esta.
+define("PATH_HOME", (ENV == "prod") ? "https://www.colmed1.com.ar/portal/" : "http://localhost/tramites-web/");
 
 // URL base del web service, usada por todos los controladores
 define("URL_WS", (ENV == "prod")

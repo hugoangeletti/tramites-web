@@ -1,26 +1,28 @@
 <?php
 require_once '../dataAccess/config.php';
-permisoLogueado();
-require_once '../html/head.php';
-require_once '../html/header.php';
 require_once '../dataAccess/funcionesPhp.php';
-require_once '../html/menuTramites.php';
 
-// Gire redirige al colegiado a esta página cuando termina el checkout (return_url),
-// agregando status, type y transactionId. Con eso se informa el resultado al WS y
-// después se vuelve a consultar el estado, porque el retorno viaja por el navegador
-// y no puede tomarse por sí solo como comprobante de pago.
-$matricula = $_SESSION['matricula'];
-$hashColegiado = $_SESSION['hashColegiado'];
-$hashIntencionPago = isset($_SESSION['intencionPagoPendiente']['hash']) ? $_SESSION['intencionPagoPendiente']['hash'] : '';
+// Diagnóstico de la pérdida de sesión en mobile: se compara el id de sesión que
+// salió hacia Gire (sidSalida) contra la cookie que efectivamente volvió, para
+// distinguir si el problema es que la cookie no llega, o que sí llega pero los
+// datos de esa sesión ya no están del lado del servidor.
+$diagSidSalida = isset($_GET['sidSalida']) ? trim($_GET['sidSalida']) : '';
+$diagCookiePresente = isset($_COOKIE[session_name()]);
+$diagCookieValor = $diagCookiePresente ? $_COOKIE[session_name()] : '';
+$diagSidLlegada = session_id();
 
-ini_set('xdebug.var_display_max_depth', -1);
-ini_set('xdebug.var_display_max_children', -1);
-ini_set('xdebug.var_display_max_data', -1);
-set_time_limit(0);
-
+// Gire redirige acá cuando termina el checkout (return_url), agregando status,
+// type y transactionId. El id de la intención viaja como parámetro propio
+// (?intencion=...), no se lee de la sesión: el viaje a Gire y, si el banco pide
+// una verificación adicional (3D Secure), a la página del banco y de vuelta,
+// puede tardar lo suficiente como para que la sesión PHP venza en el medio. Por
+// eso todo lo que informa el resultado al WS se hace ANTES de tocar la sesión
+// o de exigir que siga siendo válida.
+$hashIntencionPago = isset($_GET['intencion']) ? trim($_GET['intencion']) : '';
 $status = isset($_GET['status']) ? trim($_GET['status']) : '';
 $transactionId = isset($_GET['transactionId']) ? trim($_GET['transactionId']) : '';
+
+set_time_limit(0);
 
 // Traducción del retorno de Gire a los estados que acepta el WS. El parámetro
 // status trae el código de estado documentado por Gire:
@@ -53,47 +55,39 @@ if ($vieneDeGire) {
 // Se informa el resultado al WS para que actualice la intención de pago.
 // respuestaGire guarda tal cual lo que Gire devolvió en la URL, para poder
 // reconstruir después qué informó ante cualquier reclamo o diferencia.
+$resultadoInforme = NULL;
 if ($estadoPago !== NULL && $hashIntencionPago <> '') {
     $respuestaGire = isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '';
-    $dataEstado = json_encode(array(
+    $resultadoInforme = llamarWs(URL_WS.'/cobranza/marcar_intencion_enviada.php', 'POST', array(
         "hashIntencionPago" => $hashIntencionPago,
         "estado"            => $estadoPago,
         "idGire"            => $transactionId,
         "respuestaGire"     => $respuestaGire
     ));
-    $chEstado = curl_init(URL_WS.'/cobranza/marcar_intencion_enviada.php');
-    curl_setopt($chEstado, CURLOPT_CUSTOMREQUEST, "POST");
-    curl_setopt($chEstado, CURLOPT_POSTFIELDS, $dataEstado);
-    curl_setopt($chEstado, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($chEstado, CURLOPT_TIMEOUT, 10);
-    curl_setopt($chEstado, CURLOPT_HTTPHEADER, array(
-        'Content-Type: application/json',
-        'Content-Length: ' . strlen($dataEstado)
-    ));
-    $resultEstado = curl_exec($chEstado);
-    $errEstado = curl_error($chEstado);
-    curl_close($chEstado);
 }
 
-// Recién ahora se relee el estado, para que la sesión quede alineada con
-// lo que el WS registró a partir del resultado informado
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, URL_WS.'/colegiado/buscar_colegiado.php?matricula='.$matricula);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
-$respuestaWs = curl_exec($ch);
-$errWs = curl_error($ch);
-curl_close($ch);
+// Recién a partir de acá depende de que la sesión siga viva: si sigue siendo
+// válida se muestra la pantalla completa (menú, estado actualizado de cuotas);
+// si no, un aviso simple invitando a volver a ingresar. El resultado del pago
+// ya quedó informado arriba en cualquiera de los dos casos.
+$sesionValida = logueado();
+
+require_once '../html/head.php';
+require_once '../html/header.php';
 
 $estadoConsultado = FALSE;
+if ($sesionValida) {
+    permisoLogueado();
+    require_once '../html/menuTramites.php';
 
-if (!$errWs) {
-    $rtaWs = json_decode($respuestaWs, true);
-    if (isset($rtaWs['respuesta']) && isset($rtaWs['respuesta']['codigo']) && $rtaWs['respuesta']['codigo'] == 1) {
-        $estadoConsultado = TRUE;
-        $intencion = armarIntencionPagoPendiente($rtaWs['respuesta']);
+    $matricula = $_SESSION['matricula'];
+    $hashColegiado = $_SESSION['hashColegiado'];
 
-        // Se deja la sesión alineada con lo que dice el WS
+    // Se relee el estado para dejar la sesión alineada con lo que el WS registró
+    $rWs = llamarWs(URL_WS.'/colegiado/buscar_colegiado.php?matricula='.$matricula);
+    $estadoConsultado = $rWs['ok'];
+    if ($estadoConsultado) {
+        $intencion = armarIntencionPagoPendiente($rWs['nodo']);
         if ($intencion !== NULL) {
             $_SESSION['intencionPagoPendiente'] = $intencion;
         } else {
@@ -129,7 +123,13 @@ if (!$errWs) {
             </div>
         <?php } ?>
 
-        <?php if (!$estadoConsultado) { ?>
+        <?php if (!$sesionValida) { ?>
+            <div class="alert alert-warning">
+                Su sesi&oacute;n expir&oacute; durante el pago (puede pasar si el banco pidi&oacute;
+                una verificaci&oacute;n adicional). El resultado ya qued&oacute; registrado; vuelva a
+                ingresar para ver el estado actualizado de sus cuotas.
+            </div>
+        <?php } else if (!$estadoConsultado) { ?>
             <div class="alert alert-warning">
                 No pudimos actualizar el estado de sus cuotas en este momento. Vuelva a consultarlas
                 en unos minutos.
@@ -144,23 +144,36 @@ if (!$errWs) {
                         <?php echo htmlspecialchars($clave, ENT_QUOTES, 'UTF-8'); ?>:
                         <?php echo htmlspecialchars(is_array($valor) ? json_encode($valor) : $valor, ENT_QUOTES, 'UTF-8'); ?><br>
                     <?php } ?>
+                    <b>Sesi&oacute;n v&aacute;lida al volver:</b> <?php echo $sesionValida ? 'si' : 'no'; ?><br>
+                    <b>--- Diagn&oacute;stico de la cookie ---</b><br>
+                    <b>Id de sesi&oacute;n al salir hacia Gire:</b> <?php echo htmlspecialchars($diagSidSalida, ENT_QUOTES, 'UTF-8'); ?><br>
+                    <b>&iquest;Lleg&oacute; la cookie de sesi&oacute;n?:</b> <?php echo $diagCookiePresente ? 'si' : 'NO'; ?><br>
+                    <b>Id de sesi&oacute;n al volver:</b> <?php echo htmlspecialchars($diagSidLlegada, ENT_QUOTES, 'UTF-8'); ?><br>
+                    <b>&iquest;Coinciden?:</b> <?php echo ($diagSidSalida <> '' && $diagSidSalida === $diagSidLlegada) ? 'SI - la cookie viajó bien, el problema está en el servidor' : 'NO - la cookie no volvió (o volvió con otro id)'; ?><br>
+                    <b>--- fin diagn&oacute;stico ---</b><br>
                     <b>Estado informado al WS:</b> <?php echo htmlspecialchars($estadoPago, ENT_QUOTES, 'UTF-8'); ?><br>
-                    <?php if ($hashIntencionPago <> '') { ?>
+                    <?php if ($resultadoInforme !== NULL) { ?>
                         <b>Respuesta del WS:</b>
-                        <?php echo htmlspecialchars($errEstado ? $errEstado : $resultEstado, ENT_QUOTES, 'UTF-8'); ?>
+                        <?php echo htmlspecialchars(json_encode($resultadoInforme['cruda']), ENT_QUOTES, 'UTF-8'); ?>
                     <?php } else { ?>
-                        <b>Sin intenci&oacute;n de pago en sesi&oacute;n:</b> no se inform&oacute; al WS.
+                        <b>Sin intenci&oacute;n de pago en la URL:</b> no se inform&oacute; al WS.
                     <?php } ?>
                 </small>
             </div>
         <?php } ?>
 
-        <a href="cuotas.php?id=<?php echo $hashColegiado; ?>" class="btn btn-info">Ver mis cuotas</a>
-        <a href="tramites.php" class="btn btn-secondary">Volver a tr&aacute;mites</a>
+        <?php if ($sesionValida) { ?>
+            <a href="cuotas.php?id=<?php echo $hashColegiado; ?>" class="btn btn-info">Ver mis cuotas</a>
+            <a href="tramites.php" class="btn btn-secondary">Volver a tr&aacute;mites</a>
+        <?php } else { ?>
+            <a href="login.php" class="btn btn-info">Volver a ingresar</a>
+        <?php } ?>
     </div>
 </div>
 <?php
-require_once "../html/menuTramitesClose.php";
+if ($sesionValida) {
+    require_once "../html/menuTramitesClose.php";
+}
 include("../html/footer.php");
 ?>
   </div>

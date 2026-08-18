@@ -1,0 +1,9 @@
+# Fuerza HTTPS solo para el dominio de producción, para que la cookie de sesión
+# (SameSite=None; Secure, ver dataAccess/config.php) siempre pueda guardarse.
+# No afecta el desarrollo local (localhost).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTP_HOST} ^(www\.)?colmed1\.com\.ar$ [NC]
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [L,R=301]
+</IfModule>

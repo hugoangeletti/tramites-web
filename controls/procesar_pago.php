@@ -82,7 +82,13 @@ if ($continuar) {
         "description" => "Pago de cuotas - Colegio de Médicos Distrito I",
         "currency"    => "ars",
         "reference"   => $hashIntencionPago,
-        "return_url"  => PATH_HOME . "controls/pago_procesado.php",
+        // Va como parámetro propio, no solo en sesión: el viaje a Gire/el banco
+        // (3D Secure) puede tardar lo suficiente como para que la sesión venza
+        // en el medio, y aun así hay que poder informar el resultado al WS.
+        // sidSalida es solo para diagnóstico (comparar contra la cookie que
+        // realmente vuelve) y solo se manda mientras GIRE_MODO_TEST esté activo.
+        "return_url"  => PATH_HOME . "controls/pago_procesado.php?intencion=" . urlencode($hashIntencionPago)
+            . (GIRE_MODO_TEST ? "&sidSalida=" . urlencode(session_id()) : ""),
         "test"        => GIRE_MODO_TEST,
         "customer"    => array(
             "email"          => $email,

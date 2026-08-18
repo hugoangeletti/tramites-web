@@ -11,70 +11,35 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     $idColegiado = $_SESSION['idColegiado'];
     $hashColegiado = $_SESSION['hashColegiado'];
 
-    //obtener los datos del colegiDO
-    ini_set('xdebug.var_display_max_depth', -1);
-    ini_set('xdebug.var_display_max_children', -1);
-    ini_set('xdebug.var_display_max_data', -1);
     set_time_limit(0);
 
-    $ch = curl_init();
+    $r = llamarWs(URL_WS.'/colegiado/buscar_datos_contacto.php?idColegiado='.$idColegiado);
 
-    curl_setopt($ch, CURLOPT_URL, URL_WS.'/colegiado/buscar_datos_contacto.php?idColegiado='.$idColegiado);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
-
-    $headers = array();
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    $respuesta = curl_exec($ch);
-    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $err = curl_error($ch);
-
-    if ($err) {
+    if ($r['error']) {
         $continuar = FALSE;
     ?>
         <div class="row alert alert-danger">
             <div class="col-md-12 text-left">Disculpe las molestias. Momentaneamente fuera de servicio, intente m&aacute;s tarde</div>
         </div>
     <?php
+    } else if ($r['codigo'] === null) {
+        $continuar = FALSE;
+    ?>
+        <br>
+        <div class="row">
+            <div class="col-md-4">
+                <h5>Momentaneamente fuera de servicio, vuelva a intentar más tarde</a>
+            </div>
+            <div class="col-md-4">
+                <a href="login.php" class="btn btn-info" role="button">Volver</a>
+            </div>
+        </div>
+    <?php
+    } else if ($r['ok']) {
+        $contacto = $r['datos'];
     } else {
-      switch ($http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE)) {
-        case 200:
-            $rta = (json_decode($respuesta, true));
-            if (isset($rta) && isset($rta['respuesta'])) {
-                $respuesta = $rta['respuesta'];
-                if ($respuesta['codigo'] == 1) {
-                    $contacto = $respuesta['datos'];
-                } else {
-                    $continuar = FALSE;
-                    $mensaje = $respuesta['mensaje'];
-                }
-            } else {
-                $continuar = FALSE;
-                ?>
-                <br>
-                <div class="row">
-                    <div class="col-md-4">
-                        <h5>Momentaneamente fuera de servicio, vuelva a intentar más tarde</a>
-                    </div>
-                    <div class="col-md-4">
-                        <a href="login.php" class="btn btn-info" role="button">Volver</a>
-                    </div>
-                </div>
-            <?php
-            }
-            break;
-
-        case 400:
-            $rta = (json_decode($respuesta, true));
-            var_dump($rta);
-            $continuar = FALSE;
-            break;
-
-        default:
-            echo 'Codigo HTTP inesperado: '.$http_code."<br>";
-            $continuar = FALSE;
-            break;
-        }
+        $continuar = FALSE;
+        $mensaje = $r['mensaje'];
     }
 } else {
     $continuar = FALSE;

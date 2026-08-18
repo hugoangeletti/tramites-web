@@ -439,3 +439,117 @@ function armarIntencionPagoPendiente($respuestaWs)
         'enviada' => isset($nodo['Enviada']) ? filter_var($nodo['Enviada'], FILTER_VALIDATE_BOOLEAN) : FALSE,
     );
 }
+
+/**
+ * Llama a un endpoint del WS (GET o POST con body JSON) y normaliza la respuesta,
+ * evitando repetir el bloque de curl_init/curl_setopt/json_decode en cada controlador.
+ *
+ * El WS responde de dos formas según la familia de endpoints: envuelta en un nodo
+ * "respuesta" (los de colegiado/*) o plana (los de cobranza/*). Esta función detecta
+ * cuál es y devuelve siempre el mismo shape, para que el llamador no tenga que
+ * importarle cuál de las dos formas usa el endpoint que está consumiendo.
+ *
+ * Devuelve un array asociativo:
+ *   'ok'       bool   true solo si no hubo error de conexión/decodificación y codigo == 1
+ *   'codigo'   mixed  el código que devolvió el WS (o NULL si no se pudo interpretar)
+ *   'mensaje'  string el mensaje del WS, o uno genérico si falló la conexión/decodificación
+ *   'datos'    mixed  el nodo "datos" de la respuesta, si existe
+ *   'nodo'     array  la respuesta ya desenvuelta (útil para leer campos extra, como
+ *                      "intencion_pago", que viajan junto a "datos" en vez de adentro)
+ *   'cruda'    mixed  la respuesta decodificada tal cual llegó, sin desenvolver
+ *   'error'    string el error de curl, o NULL si no hubo
+ *   'httpCode' int    código HTTP de la respuesta
+ *
+ * @param string $url URL completa del endpoint (armar con URL_WS.'/...')
+ * @param string $metodo 'GET' o 'POST'
+ * @param array|string|null $datos para POST: array (se codifica a JSON) o string ya codificado
+ * @param int $timeoutSegundos tiempo máximo de espera
+ */
+function llamarWs($url, $metodo = 'GET', $datos = null, $timeoutSegundos = 30) {
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, $timeoutSegundos);
+
+    if (strtoupper($metodo) === 'POST') {
+        $cuerpo = is_string($datos) ? $datos : json_encode($datos);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $cuerpo);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Content-Type: application/json',
+            'Content-Length: ' . strlen($cuerpo)
+        ));
+    } else {
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+    }
+
+    $resultado = curl_exec($ch);
+    $error = curl_error($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    $respuesta = array(
+        'ok'       => false,
+        'codigo'   => null,
+        'mensaje'  => '',
+        'datos'    => null,
+        'nodo'     => array(),
+        'cruda'    => null,
+        'error'    => $error ?: null,
+        'httpCode' => $httpCode,
+    );
+
+    if ($error) {
+        $respuesta['mensaje'] = 'Disculpe las molestias. Momentáneamente fuera de servicio, intente más tarde.';
+        return $respuesta;
+    }
+
+    $decodificado = json_decode($resultado, true);
+    $respuesta['cruda'] = $decodificado;
+
+    if (!is_array($decodificado)) {
+        $respuesta['mensaje'] = 'Momentáneamente fuera de servicio, vuelva a intentar más tarde.';
+        return $respuesta;
+    }
+
+    // Se desenvuelve el nodo "respuesta" cuando existe; si no, el endpoint ya responde plano
+    $nodo = isset($decodificado['respuesta']) ? $decodificado['respuesta'] : $decodificado;
+    if (!is_array($nodo)) {
+        $respuesta['mensaje'] = 'Momentáneamente fuera de servicio, vuelva a intentar más tarde.';
+        return $respuesta;
+    }
+
+    $respuesta['nodo']    = $nodo;
+    $respuesta['codigo']  = isset($nodo['codigo']) ? $nodo['codigo'] : null;
+    $respuesta['mensaje'] = isset($nodo['mensaje']) ? $nodo['mensaje'] : '';
+    $respuesta['datos']   = isset($nodo['datos']) ? $nodo['datos'] : null;
+    $respuesta['ok']      = ($respuesta['codigo'] == 1);
+
+    return $respuesta;
+}
+
+/**
+ * Arma el formulario auto-submit que se usa en todo el proyecto para redirigir
+ * llevando un mensaje flash (y, opcionalmente, otros campos — por ejemplo para
+ * reenviar los datos que el colegiado había cargado si falló la validación) y
+ * corta la ejecución. Reemplaza el bloque <body onLoad="...">...</body> que
+ * se repetía copiado en cada controlador.
+ *
+ * @param string $accion URL a la que se redirige (relativa, ej. "tramites.php" o "cuotas.php?id=...")
+ * @param string $mensaje texto del mensaje flash
+ * @param string $clase clase Bootstrap del alert (ej. "alert alert-success")
+ * @param array $camposExtra pares nombre => valor para inputs hidden adicionales
+ */
+function redirigirConMensaje($accion, $mensaje, $clase = 'alert alert-danger', $camposExtra = array()) {
+    ?>
+    <body onLoad="document.forms['formRedirigir'].submit()">
+        <form name="formRedirigir" method="POST" action="<?php echo htmlspecialchars($accion, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="mensaje" value="<?php echo htmlspecialchars($mensaje, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="clase" value="<?php echo htmlspecialchars($clase, ENT_QUOTES, 'UTF-8'); ?>">
+            <?php foreach ($camposExtra as $nombre => $valor) { ?>
+                <input type="hidden" name="<?php echo htmlspecialchars($nombre, ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars($valor, ENT_QUOTES, 'UTF-8'); ?>">
+            <?php } ?>
+        </form>
+    </body>
+    <?php
+    exit;
+}
