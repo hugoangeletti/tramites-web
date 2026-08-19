@@ -35,11 +35,13 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     $continuar = FALSE;
 }
 
-// Si la intención ya se envió a Gire, el pago espera la rendición diaria: no se
-// genera un checkout nuevo para evitar que se abone dos veces la misma deuda
-if ($continuar && !empty($_SESSION['intencionPagoPendiente']['enviada'])) {
+// Si la intención ya no está "iniciada" (se envió a Gire, o Gire ya informó un
+// resultado), no se genera un checkout nuevo para evitar abonar dos veces la
+// misma deuda. Si quedó "enviada" sin resultado, la vía para destrabarla es
+// anularla desde cuotas.php, no volver a intentar pagar por acá.
+if ($continuar && isset($_SESSION['intencionPagoPendiente']['estado']) && $_SESSION['intencionPagoPendiente']['estado'] <> 'iniciada') {
     $continuar = FALSE;
-    $mensaje .= "Este pago ya fue enviado y est&aacute; pendiente de acreditaci&oacute;n. No es necesario volver a abonarlo.";
+    $mensaje .= "Ya hay un pago en curso para esta intenci&oacute;n. Si no lo complet&oacute;, an&uacute;lelo desde Cuotas de colegiaci&oacute;n para volver a intentarlo.";
 }
 
 // Sin credenciales de Gire la API responde 401 "el API Key es obligatorio", así que

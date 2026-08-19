@@ -164,10 +164,11 @@ if ($continua) {
             <?php require_once '../html/menuTramites.php'; ?>
             <?php if (isset($_SESSION['intencionPagoPendiente'])) { ?>
                 <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap">
-                    <?php if (!empty($_SESSION['intencionPagoPendiente']['enviada'])) { ?>
-                        <span>Tiene un pago de <b>$<?php echo number_format($_SESSION['intencionPagoPendiente']['total'], 0, ',', '.'); ?></b> pendiente de acreditaci&oacute;n.</span>
-                    <?php } else { ?>
+                    <?php $estadoIntencionTramites = isset($_SESSION['intencionPagoPendiente']['estado']) ? $_SESSION['intencionPagoPendiente']['estado'] : 'enviada'; ?>
+                    <?php if ($estadoIntencionTramites == 'iniciada' || $estadoIntencionTramites == 'enviada') { ?>
                         <span>Tiene un pago iniciado por <b>$<?php echo number_format($_SESSION['intencionPagoPendiente']['total'], 0, ',', '.'); ?></b> que a&uacute;n no complet&oacute;.</span>
+                    <?php } else { ?>
+                        <span>Tiene un pago de <b>$<?php echo number_format($_SESSION['intencionPagoPendiente']['total'], 0, ',', '.'); ?></b> pendiente de acreditaci&oacute;n.</span>
                     <?php } ?>
                     <a href="cuotas.php?id=<?php echo $hashColegiado; ?>" class="btn btn-warning btn-sm">Ver detalle</a>
                 </div>

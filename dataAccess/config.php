@@ -2,8 +2,8 @@
 // ENV se define antes de arrancar la sesión porque en producción hace falta
 // configurar la cookie de sesión (SameSite=None; Secure) con session_set_cookie_params()
 // antes de llamar a session_start() — no se puede hacer después.
-//define("ENV", 'desa');
-define("ENV", 'prod');
+define("ENV", 'desa');
+//define("ENV", 'prod');
 
 if (ENV == "prod") {
     // Por defecto, los navegadores tratan la cookie de sesión como SameSite=Lax,
@@ -41,9 +41,8 @@ if (file_exists(__DIR__ . '/secrets.php')) {
 define("GIRE_CHECKOUT_URL", "https://api.bdp.gire.com/p/checkout");
 
 // Modo prueba del checkout de Gire (permite operar con las tarjetas de test).
-// Por ahora queda en TRUE en todos los entornos, incluido producción.
-// Poner en FALSE cuando se habiliten los pagos reales.
-define("GIRE_MODO_TEST", TRUE);
+// En FALSE: los pagos son reales. Poner en TRUE solo para volver a probar.
+define("GIRE_MODO_TEST", FALSE);
 
 // Mientras la integración con Gire no esté habilitada, los botones de pago
 // en línea no se muestran en ningún entorno. Poner en TRUE para activarlos.
@@ -52,7 +51,7 @@ define("MOSTRAR_PAGO_EN_LINEA", TRUE);
 // En prod va HTTPS: la cookie Secure (ver arriba) no se guarda si el sitio se
 // sirve por HTTP. El WS interno (URL_WS, más abajo) sigue sin soportar HTTPS,
 // pero es un dominio y una conexión servidor-a-servidor distinta a esta.
-define("PATH_HOME", (ENV == "prod") ? "https://www.colmed1.com.ar/portal/" : "http://localhost/tramites-web/");
+define("PATH_HOME", (ENV == "prod") ? "https://www.colmed1.com.ar/tramites-web/" : "http://localhost/tramites-web/");
 
 // URL base del web service, usada por todos los controladores
 define("URL_WS", (ENV == "prod")

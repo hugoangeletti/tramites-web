@@ -404,7 +404,7 @@ function getRealIP()
 /**
  * Normaliza el nodo "intencion_pago" que devuelve el WS y arma el arreglo que se
  * guarda en sesión. Contempla las dos formas en que puede llegar: plana
- * (Hash, TotalPago, Cuotas, Enviada) o envuelta en estado/datos.
+ * (Hash, TotalPago, Cuotas, Estado) o envuelta en estado/datos.
  * Devuelve NULL cuando no hay intención de pago pendiente.
  */
 function armarIntencionPagoPendiente($respuestaWs)
@@ -431,12 +431,25 @@ function armarIntencionPagoPendiente($respuestaWs)
         ? array_map('trim', explode(',', $nodo['Cuotas']))
         : array();
 
+    // 'iniciada' | 'enviada' | 'aprobada' | 'denegada' | 'espera' (mismo
+    // vocabulario que usa marcar_intencion_enviada.php). Por compatibilidad,
+    // si el WS todavía manda el booleano viejo "Enviada" en vez de "Estado",
+    // se lo traduce.
+    if (isset($nodo['Estado']) && $nodo['Estado'] <> '') {
+        $estado = strtolower(trim($nodo['Estado']));
+    } else if (isset($nodo['Enviada'])) {
+        $estado = filter_var($nodo['Enviada'], FILTER_VALIDATE_BOOLEAN) ? 'enviada' : 'iniciada';
+    } else {
+        $estado = 'enviada';
+    }
+
     return array(
-        'hash'    => $nodo['Hash'],
-        'total'   => isset($nodo['TotalPago']) ? $nodo['TotalPago'] : 0,
-        'cuotas'  => $cuotas,
-        // Si ya se envió a Gire, el pago espera la rendición diaria
-        'enviada' => isset($nodo['Enviada']) ? filter_var($nodo['Enviada'], FILTER_VALIDATE_BOOLEAN) : FALSE,
+        'hash'   => $nodo['Hash'],
+        'total'  => isset($nodo['TotalPago']) ? $nodo['TotalPago'] : 0,
+        'cuotas' => $cuotas,
+        'estado' => $estado,
+        // se mantiene por compatibilidad con el código que todavía lo lee
+        'enviada' => ($estado !== 'iniciada'),
     );
 }
 

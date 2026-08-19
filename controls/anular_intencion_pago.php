@@ -9,10 +9,11 @@ $continuar = true;
 if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     $hashColegiado = $_SESSION['hashColegiado'];
 
-    if (!empty($_SESSION['intencionPagoPendiente']['enviada'])) {
-        // Ya se envió a Gire: queda a la espera de la rendición, no se puede anular
+    $estadoIntencion = isset($_SESSION['intencionPagoPendiente']['estado']) ? $_SESSION['intencionPagoPendiente']['estado'] : 'enviada';
+    if ($estadoIntencion <> 'iniciada' && $estadoIntencion <> 'enviada') {
+        // Gire ya informó un resultado (aprobada/denegada/espera): no se puede anular
         $continuar = FALSE;
-        $mensajeGuard = "El pago ya fue enviado y est&aacute; pendiente de acreditaci&oacute;n, no puede anularse.";
+        $mensajeGuard = "El pago ya fue procesado, no puede anularse.";
     } else if (isset($_POST['hashIntencionPago']) && $_POST['hashIntencionPago'] <> '') {
         $hashIntencionPago = $_POST['hashIntencionPago'];
     } else {
