@@ -51,6 +51,20 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
                 // colegiado entra directo a esta página, el dato en sesión puede estar
                 // desactualizado (por ejemplo, si la intención se anuló desde otro lado)
                 $intencionPagoPendiente = armarIntencionPagoPendiente($respuesta);
+
+                // Si quedó "iniciada" o "enviada" (sin resultado de Gire) hace más de 5
+                // minutos, se anula sola para no dejar la deuda trabada indefinidamente
+                // y liberar esas cuotas para que se pueda generar una intención nueva.
+                if ($intencionPagoPendiente !== NULL
+                    && in_array($intencionPagoPendiente['estado'], array('iniciada', 'enviada'))
+                    && $intencionPagoPendiente['fechaInicio'] <> ''
+                    && (time() - strtotime($intencionPagoPendiente['fechaInicio'])) > 300
+                ) {
+                    if (anularIntencionPagoWs($intencionPagoPendiente['hash'])) {
+                        $intencionPagoPendiente = NULL;
+                    }
+                }
+
                 if ($intencionPagoPendiente !== NULL) {
                     $_SESSION['intencionPagoPendiente'] = $intencionPagoPendiente;
                 } else {

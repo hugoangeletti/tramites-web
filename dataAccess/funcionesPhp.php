@@ -444,13 +444,25 @@ function armarIntencionPagoPendiente($respuestaWs)
     }
 
     return array(
-        'hash'   => $nodo['Hash'],
-        'total'  => isset($nodo['TotalPago']) ? $nodo['TotalPago'] : 0,
-        'cuotas' => $cuotas,
-        'estado' => $estado,
+        'hash'        => $nodo['Hash'],
+        'total'       => isset($nodo['TotalPago']) ? $nodo['TotalPago'] : 0,
+        'cuotas'      => $cuotas,
+        'estado'      => $estado,
+        'fechaInicio' => isset($nodo['FechaInicio']) ? $nodo['FechaInicio'] : '',
         // se mantiene por compatibilidad con el código que todavía lo lee
         'enviada' => ($estado !== 'iniciada'),
     );
+}
+
+/**
+ * Pide al WS que anule una intención de pago (mismo endpoint que usa el botón
+ * "Anular" de cuotas.php). Devuelve true solo si el WS confirmó la anulación.
+ */
+function anularIntencionPagoWs($hashIntencionPago) {
+    $r = llamarWs(URL_WS.'/cobranza/anular_intencion_pago.php', 'POST', array(
+        "hashIntencionPago" => $hashIntencionPago,
+    ));
+    return $r['ok'];
 }
 
 /**
