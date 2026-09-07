@@ -49,24 +49,52 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
 
                 // Se refresca acá y no solo en tramites.php/pago_procesado.php: si el
                 // colegiado entra directo a esta página, el dato en sesión puede estar
-                // desactualizado (por ejemplo, si la intención se anuló desde otro lado)
-                $intencionPagoPendiente = armarIntencionPagoPendiente($respuesta);
+                // desactualizado (por ejemplo, si la intención se anuló desde otro lado).
+                // El WS ahora devuelve TODAS las intenciones vigentes (puede haber varias
+                // "aprobada" en simultáneo, además de a lo sumo una "iniciada"/"enviada"),
+                // no solo la última como antes.
+                $intencionesRaw = (isset($respuesta['intencion_pago']) && is_array($respuesta['intencion_pago']))
+                    ? $respuesta['intencion_pago']
+                    : array();
 
-                // Si quedó "iniciada" o "enviada" (sin resultado de Gire) hace más de 5
-                // minutos, se anula sola para no dejar la deuda trabada indefinidamente
-                // y liberar esas cuotas para que se pueda generar una intención nueva.
-                if ($intencionPagoPendiente !== NULL
-                    && in_array($intencionPagoPendiente['estado'], array('iniciada', 'enviada'))
-                    && $intencionPagoPendiente['fechaInicio'] <> ''
-                    && (time() - strtotime($intencionPagoPendiente['fechaInicio'])) > 300
-                ) {
-                    if (anularIntencionPagoWs($intencionPagoPendiente['hash'])) {
-                        $intencionPagoPendiente = NULL;
+                $intencionActiva = NULL; // la única iniciada/enviada, si la hay
+                $intencionesAprobadas = array();
+                $cuotasYaCubiertas = array();
+
+                foreach ($intencionesRaw as $itemIntencion) {
+                    $estadoItem = isset($itemIntencion['Estado']) ? strtolower(trim($itemIntencion['Estado'])) : '';
+                    $hashItem = isset($itemIntencion['Hash']) ? $itemIntencion['Hash'] : '';
+                    $fechaInicioItem = isset($itemIntencion['FechaInicio']) ? $itemIntencion['FechaInicio'] : '';
+                    $cuotasItem = (isset($itemIntencion['Cuotas']) && $itemIntencion['Cuotas'] <> '')
+                        ? array_map('trim', explode(',', $itemIntencion['Cuotas']))
+                        : array();
+
+                    if ($estadoItem == 'iniciada' || $estadoItem == 'enviada') {
+                        // Si quedó así hace más de 5 minutos sin resultado de Gire, se anula
+                        // sola para no dejar la deuda trabada indefinidamente
+                        if ($fechaInicioItem <> '' && (time() - strtotime($fechaInicioItem)) > 300 && anularIntencionPagoWs($hashItem)) {
+                            continue;
+                        }
+                        $intencionActiva = array(
+                            'hash'        => $hashItem,
+                            'total'       => isset($itemIntencion['TotalPago']) ? $itemIntencion['TotalPago'] : 0,
+                            'cuotas'      => $cuotasItem,
+                            'estado'      => $estadoItem,
+                            'fechaInicio' => $fechaInicioItem,
+                        );
+                        $cuotasYaCubiertas = array_merge($cuotasYaCubiertas, $cuotasItem);
+                    } else if ($estadoItem == 'aprobada') {
+                        $intencionesAprobadas[] = array(
+                            'hash'   => $hashItem,
+                            'total'  => isset($itemIntencion['TotalPago']) ? $itemIntencion['TotalPago'] : 0,
+                            'cuotas' => $cuotasItem,
+                        );
+                        $cuotasYaCubiertas = array_merge($cuotasYaCubiertas, $cuotasItem);
                     }
                 }
 
-                if ($intencionPagoPendiente !== NULL) {
-                    $_SESSION['intencionPagoPendiente'] = $intencionPagoPendiente;
+                if ($intencionActiva !== NULL) {
+                    $_SESSION['intencionPagoPendiente'] = $intencionActiva;
                 } else {
                     unset($_SESSION['intencionPagoPendiente']);
                 }
@@ -144,6 +172,13 @@ if ($continuar && isset($estadoTesoreria)) {
         // aprobada/denegada/espera: Gire ya informó un resultado -> solo se informa.
         $puedePagar = ($estadoIntencion == 'iniciada');
         $puedeAnular = ($estadoIntencion == 'iniciada' || $estadoIntencion == 'enviada');
+        // Detalle de las cuotas que cubre esta intención, para el modal "Ver detalle"
+        $cuotasDeLaIntencion = array();
+        foreach ($cuotas as $cuota) {
+            if (in_array($cuota['idColegiadoDeudaAnualCuota'], $intencionPendiente['cuotas'])) {
+                $cuotasDeLaIntencion[] = $cuota;
+            }
+        }
     ?>
         <div class="alert alert-warning mb-4">
             <div class="d-flex justify-content-between align-items-center flex-wrap">
@@ -169,36 +204,163 @@ if ($continuar && isset($estadoTesoreria)) {
                         como impagas hasta que se procese. No es necesario que vuelva a abonarlas.
                     <?php } ?>
                 </div>
-                <?php if ($puedePagar || $puedeAnular) { ?>
-                    <div class="mt-2 mt-md-0">
-                        <?php if ($puedePagar && MOSTRAR_PAGO_EN_LINEA) { ?>
-                            <form action="procesar_pago.php?id=<?php echo $hashColegiado; ?>" method="POST" class="d-inline">
-                                <input type="hidden" name="hashIntencionPago" value="<?php echo htmlspecialchars($intencionPendiente['hash'], ENT_QUOTES, 'UTF-8'); ?>">
-                                <input type="hidden" name="totalActualizado" value="<?php echo htmlspecialchars($intencionPendiente['total'], ENT_QUOTES, 'UTF-8'); ?>">
-                                <button type="submit" class="btn btn-success btn-sm">Pagar</button>
-                            </form>
-                        <?php } ?>
-                        <?php if ($puedeAnular) { ?>
-                            <form action="anular_intencion_pago.php?id=<?php echo $hashColegiado; ?>" method="POST" class="d-inline" onsubmit="return confirm('¿Confirma que desea anular la intención de pago pendiente?');">
-                                <input type="hidden" name="hashIntencionPago" value="<?php echo htmlspecialchars($intencionPendiente['hash'], ENT_QUOTES, 'UTF-8'); ?>">
-                                <button type="submit" class="btn btn-outline-danger btn-sm">Anular</button>
-                            </form>
-                        <?php } ?>
-                    </div>
-                <?php } ?>
+                <div class="mt-2 mt-md-0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#detalleIntencionModal">Ver Detalle</button>
+                    <?php if ($puedePagar && MOSTRAR_PAGO_EN_LINEA) { ?>
+                        <form action="procesar_pago.php?id=<?php echo $hashColegiado; ?>" method="POST" class="d-inline">
+                            <input type="hidden" name="hashIntencionPago" value="<?php echo htmlspecialchars($intencionPendiente['hash'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="hidden" name="totalActualizado" value="<?php echo htmlspecialchars($intencionPendiente['total'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <button type="submit" class="btn btn-success btn-sm">Pagar</button>
+                        </form>
+                    <?php } ?>
+                    <?php if ($puedeAnular) { ?>
+                        <form action="anular_intencion_pago.php?id=<?php echo $hashColegiado; ?>" method="POST" class="d-inline" onsubmit="return confirm('¿Confirma que desea anular la intención de pago pendiente?');">
+                            <input type="hidden" name="hashIntencionPago" value="<?php echo htmlspecialchars($intencionPendiente['hash'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Anular</button>
+                        </form>
+                    <?php } ?>
+                </div>
             </div>
+        </div>
+
+        <div class="modal fade" id="detalleIntencionModal" tabindex="-1" aria-labelledby="detalleIntencionModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="detalleIntencionModalLabel">Cuotas de la intenci&oacute;n de pago</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: center;">Período-Cuota</th>
+                            <th style="text-align: right;">Importe original</th>
+                            <th style="text-align: right;">Importe actualizado</th>
+                            <th style="text-align: center;">Vencimiento Original</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($cuotasDeLaIntencion as $cuota) { ?>
+                        <tr>
+                            <td style="text-align: center;"><?php echo $cuota['periodo'].'-'.$cuota['cuota']; ?></td>
+                            <td style="text-align: right;"><?php echo number_format($cuota['importeUno'], 0, ',', '.'); ?></td>
+                            <td style="text-align: right;"><?php echo number_format($cuota['importeActualizado'], 0, ',', '.'); ?></td>
+                            <td style="text-align: center;"><?php echo cambiarFechaFormatoParaMostrar($cuota['vencimiento']); ?></td>
+                        </tr>
+                        <?php } ?>
+                    </tbody>
+                </table>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+    <?php } ?>
+    <?php if (sizeof($intencionesAprobadas) > 0) {
+        $totalAprobadas = 0;
+        $cuotasIdsAprobadas = array();
+        foreach ($intencionesAprobadas as $ia) {
+            $totalAprobadas += $ia['total'];
+            $cuotasIdsAprobadas = array_merge($cuotasIdsAprobadas, $ia['cuotas']);
+        }
+        $cantIntencionesAprobadas = sizeof($intencionesAprobadas);
+        // Detalle de las cuotas cubiertas por las intenciones ya aprobadas, para el modal
+        $cuotasDeAprobadas = array();
+        foreach ($cuotas as $cuota) {
+            if (in_array($cuota['idColegiadoDeudaAnualCuota'], $cuotasIdsAprobadas)) {
+                $cuotasDeAprobadas[] = $cuota;
+            }
+        }
+    ?>
+        <div class="alert alert-warning mb-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <div>
+                    <?php if ($cantIntencionesAprobadas > 1) { ?>
+                        Tiene <?php echo $cantIntencionesAprobadas; ?> pagos por un total de
+                        <b>$<?php echo number_format($totalAprobadas, 0, ',', '.'); ?></b>
+                        <b>pendientes de acreditaci&oacute;n</b>. La confirmaci&oacute;n se realiza con la
+                        rendici&oacute;n diaria de la cobranza, por lo que las cuotas pueden seguir figurando
+                        como impagas hasta que se procese. No es necesario que vuelva a abonarlas.
+                    <?php } else { ?>
+                        Tiene un pago de
+                        <b>$<?php echo number_format($totalAprobadas, 0, ',', '.'); ?></b>
+                        <b>pendiente de acreditaci&oacute;n</b>. La confirmaci&oacute;n se realiza con la
+                        rendici&oacute;n diaria de la cobranza, por lo que las cuotas pueden seguir figurando
+                        como impagas hasta que se procese. No es necesario que vuelva a abonarlas.
+                    <?php } ?>
+                </div>
+                <div class="mt-2 mt-md-0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#detalleAprobadasModal">Ver Detalle</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="detalleAprobadasModal" tabindex="-1" aria-labelledby="detalleAprobadasModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="detalleAprobadasModalLabel">Cuotas con pago aprobado</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: center;">Período-Cuota</th>
+                            <th style="text-align: right;">Importe original</th>
+                            <th style="text-align: right;">Importe actualizado</th>
+                            <th style="text-align: center;">Vencimiento Original</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($cuotasDeAprobadas as $cuota) { ?>
+                        <tr>
+                            <td style="text-align: center;"><?php echo $cuota['periodo'].'-'.$cuota['cuota']; ?></td>
+                            <td style="text-align: right;"><?php echo number_format($cuota['importeUno'], 0, ',', '.'); ?></td>
+                            <td style="text-align: right;"><?php echo number_format($cuota['importeActualizado'], 0, ',', '.'); ?></td>
+                            <td style="text-align: center;"><?php echo cambiarFechaFormatoParaMostrar($cuota['vencimiento']); ?></td>
+                        </tr>
+                        <?php } ?>
+                    </tbody>
+                </table>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+              </div>
+            </div>
+          </div>
         </div>
     <?php } ?>
     <div class="card drive-card drive-banner mb-4">
         <div class="card-body">
         <?php
         if (sizeof($cuotas) >= 0) {
+            // Las cuotas que ya forman parte de alguna intención de pago (activa o ya
+            // aprobada) no se listan más acá (se ven en los modales "Ver Detalle" de arriba)
+            $cuotasParaMostrar = array();
+            foreach ($cuotas as $cuota) {
+                if (!in_array($cuota['idColegiadoDeudaAnualCuota'], $cuotasYaCubiertas)) {
+                    $cuotasParaMostrar[] = $cuota;
+                }
+            }
+
             $totalPeriodoActual = 0;
             $totalPeriodoActualActualizado = 0;
             $totalAnteriores = 0;
             $totalAnterioresActualizado = 0;
             $cuotasPeriodoActual = 0;
-            foreach ($cuotas as $cuota) {
+            foreach ($cuotasParaMostrar as $cuota) {
                 if ($cuota['periodo'] == PERIODO_ACTUAL) {
                     $totalPeriodoActual += $cuota['importeUno'];
                     $totalPeriodoActualActualizado += $cuota['importeActualizado'];
@@ -209,10 +371,16 @@ if ($continuar && isset($estadoTesoreria)) {
                 }
             }
             $hayIntencionPendiente = isset($_SESSION['intencionPagoPendiente']);
+            // Mientras la intención esté "iniciada"/"enviada" no se puede seleccionar
+            // nada nuevo (evita duplicar el checkout). Si ya está "aprobada" (Gire
+            // confirmó, solo falta que se acredite en la rendición diaria) se puede
+            // seguir abonando otras cuotas que no formen parte de esa intención.
+            $intencionBloqueaSeleccion = $hayIntencionPendiente
+                && in_array($_SESSION['intencionPagoPendiente']['estado'], array('iniciada', 'enviada'));
             ?>
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
                 <h4 class="mb-0">Cuotas de colegiación</h4>
-                <?php if ($hayIntencionPendiente) { ?>
+                <?php if ($intencionBloqueaSeleccion) { ?>
                     <span class="text-muted mr-2">Complete o anule el pago pendiente para seleccionar nuevas cuotas.</span>
                 <?php } else { ?>
                     <div class="d-flex align-items-center flex-wrap">
@@ -236,7 +404,7 @@ if ($continuar && isset($estadoTesoreria)) {
                         <thead>
                             <tr>
                                 <th style="text-align: center; width: 80px;">
-                                    <input type="checkbox" id="seleccionarTodos" onclick="seleccionarTodo(this)" <?php echo $hayIntencionPendiente ? 'disabled' : ''; ?>>
+                                    <input type="checkbox" id="seleccionarTodos" onclick="seleccionarTodo(this)" <?php echo $intencionBloqueaSeleccion ? 'disabled' : ''; ?>>
                                     <br><small>Todos</small>
                                 </th>
                                 <th style="text-align: center;">Período-Cuota</th>
@@ -247,14 +415,12 @@ if ($continuar && isset($estadoTesoreria)) {
                         </thead>
                         <tbody>
                             <?php
-                            $cuotasEnIntencionPago = isset($_SESSION['intencionPagoPendiente']['cuotas']) ? $_SESSION['intencionPagoPendiente']['cuotas'] : array();
-                            foreach ($cuotas as $cuota) {
+                            foreach ($cuotasParaMostrar as $cuota) {
                                 $esAnterior = ($cuota['periodo'] <> PERIODO_ACTUAL);
-                                $enIntencionPago = in_array($cuota['idColegiadoDeudaAnualCuota'], $cuotasEnIntencionPago);
-                                $checkboxDisabled = $esAnterior || $hayIntencionPendiente;
+                                $checkboxDisabled = $esAnterior || $intencionBloqueaSeleccion;
                                 $tituloCheckbox = $esAnterior
                                     ? 'Cuota vencida, debe abonarse'
-                                    : ($hayIntencionPendiente ? 'Ya tiene una intención de pago pendiente. Debe abonarla o anularla primero.' : '');
+                                    : ($intencionBloqueaSeleccion ? 'Ya tiene una intención de pago pendiente. Debe abonarla o anularla primero.' : '');
                             ?>
                             <tr>
                                 <td style="text-align: center;">
@@ -277,9 +443,6 @@ if ($continuar && isset($estadoTesoreria)) {
                                     <?php if ($esAnterior) { ?>
                                         <br><span class="badge badge-danger">Vencida</span>
                                     <?php } ?>
-                                    <?php if ($enIntencionPago) { ?>
-                                        <br><span class="badge badge-warning" title="Ya tiene una intención de pago pendiente por esta cuota">Pago pendiente de confirmación</span>
-                                    <?php } ?>
                                 </td>
                                 <td style="text-align: right;"><?php echo number_format($cuota['importeUno'], 0, ',', '.'); ?></td>
                                 <td style="text-align: right;"><?php echo number_format($cuota['importeActualizado'], 0, ',', '.'); ?></td>
@@ -294,7 +457,10 @@ if ($continuar && isset($estadoTesoreria)) {
             } else {
             ?>
                 <h3>No tiene cuotas pendiente de pago</h3>
-            <?php                
+                <?php if ($intencionActiva !== NULL || sizeof($intencionesAprobadas) > 0) { ?>
+                    <p class="text-muted">Hasta que no se procese el lote de cobranza con el pago realizado no va a poder solicitar certificados.</p>
+                <?php } ?>
+            <?php
             }
             ?>
         <?php
@@ -408,7 +574,7 @@ function actualizarTotalMasivo() {
     function seleccionarTodo(source) {
     // 1. Seleccionamos los checkboxes de las cuotas, excepto las vencidas
     // (esas ya vienen marcadas y deshabilitadas, no se pueden desmarcar)
-    const checkboxes = $('#cuotas tbody input[type="checkbox"]:not([data-periodo="anterior"])');
+    const checkboxes = $('#cuotas tbody input[type="checkbox"]:not([data-periodo="anterior"]):not(:disabled)');
 
     // 2. Los marcamos o desmarcamos todos según el "maestro"
     checkboxes.prop('checked', source.checked);

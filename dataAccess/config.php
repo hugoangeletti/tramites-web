@@ -42,7 +42,7 @@ define("GIRE_CHECKOUT_URL", "https://api.bdp.gire.com/p/checkout");
 
 // Modo prueba del checkout de Gire (permite operar con las tarjetas de test).
 // En FALSE: los pagos son reales. Poner en TRUE solo para volver a probar.
-define("GIRE_MODO_TEST", FALSE);
+define("GIRE_MODO_TEST", TRUE);
 
 // Mientras la integración con Gire no esté habilitada, los botones de pago
 // en línea no se muestran en ningún entorno. Poner en TRUE para activarlos.

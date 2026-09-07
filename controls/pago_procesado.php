@@ -21,6 +21,8 @@ $diagSidLlegada = session_id();
 $hashIntencionPago = isset($_GET['intencion']) ? trim($_GET['intencion']) : '';
 $status = isset($_GET['status']) ? trim($_GET['status']) : '';
 $transactionId = isset($_GET['transactionId']) ? trim($_GET['transactionId']) : '';
+$origenPago = (isset($_GET['origen']) && $_GET['origen'] == 'curso') ? 'curso' : 'colegiacion';
+$idCursosAsistentePago = ($origenPago == 'curso' && isset($_GET['idCurso'])) ? trim($_GET['idCurso']) : '';
 
 set_time_limit(0);
 
@@ -84,14 +86,27 @@ if ($sesionValida) {
     $hashColegiado = $_SESSION['hashColegiado'];
 
     // Se relee el estado para dejar la sesión alineada con lo que el WS registró
-    $rWs = llamarWs(URL_WS.'/colegiado/buscar_colegiado.php?matricula='.$matricula);
-    $estadoConsultado = $rWs['ok'];
-    if ($estadoConsultado) {
-        $intencion = armarIntencionPagoPendiente($rWs['nodo']);
-        if ($intencion !== NULL) {
-            $_SESSION['intencionPagoPendiente'] = $intencion;
-        } else {
-            unset($_SESSION['intencionPagoPendiente']);
+    if ($origenPago == 'curso' && $idCursosAsistentePago <> '') {
+        $rWs = llamarWs(URL_WS.'/cursos/buscar_cuotas_curso.php?hashColegiado='.$hashColegiado.'&idCursosAsistente='.$idCursosAsistentePago);
+        $estadoConsultado = ($rWs['httpCode'] == 200 && !$rWs['error']);
+        if ($estadoConsultado) {
+            $intencion = armarIntencionPagoPendiente($rWs['nodo']);
+            if ($intencion !== NULL) {
+                $_SESSION['intencionesPagoPendientesCurso'][$idCursosAsistentePago] = $intencion;
+            } else {
+                unset($_SESSION['intencionesPagoPendientesCurso'][$idCursosAsistentePago]);
+            }
+        }
+    } else {
+        $rWs = llamarWs(URL_WS.'/colegiado/buscar_colegiado.php?matricula='.$matricula);
+        $estadoConsultado = $rWs['ok'];
+        if ($estadoConsultado) {
+            $intencion = armarIntencionPagoPendiente($rWs['nodo']);
+            if ($intencion !== NULL) {
+                $_SESSION['intencionPagoPendiente'] = $intencion;
+            } else {
+                unset($_SESSION['intencionPagoPendiente']);
+            }
         }
     }
 }
@@ -108,7 +123,7 @@ if ($sesionValida) {
         <?php } else if ($estadoPago == 'denegada') { ?>
             <div class="alert alert-danger">
                 <b>Su pago fue rechazado.</b> No se registr&oacute; ning&uacute;n cobro. Puede volver a
-                intentarlo desde Cuotas de colegiaci&oacute;n, con el mismo u otro medio de pago.
+                intentarlo desde <?php echo ($origenPago == 'curso') ? 'las cuotas del curso' : 'Cuotas de colegiaci&oacute;n'; ?>, con el mismo u otro medio de pago.
             </div>
         <?php } else if ($estadoPago == 'espera') { ?>
             <div class="alert alert-info">
@@ -119,7 +134,7 @@ if ($sesionValida) {
         <?php } else { ?>
             <div class="alert alert-secondary">
                 No hay un resultado de pago para mostrar. Puede consultar el estado de sus cuotas
-                desde Cuotas de colegiaci&oacute;n.
+                desde <?php echo ($origenPago == 'curso') ? 'las cuotas del curso' : 'Cuotas de colegiaci&oacute;n'; ?>.
             </div>
         <?php } ?>
 
@@ -163,7 +178,11 @@ if ($sesionValida) {
         <?php } ?>
 
         <?php if ($sesionValida) { ?>
-            <a href="cuotas.php?id=<?php echo $hashColegiado; ?>" class="btn btn-info">Ver mis cuotas</a>
+            <?php if ($origenPago == 'curso' && $idCursosAsistentePago <> '') { ?>
+                <a href="cuotas_curso.php?id=<?php echo $hashColegiado; ?>&reg=<?php echo htmlspecialchars($idCursosAsistentePago, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-info">Ver cuotas del curso</a>
+            <?php } else { ?>
+                <a href="cuotas.php?id=<?php echo $hashColegiado; ?>" class="btn btn-info">Ver mis cuotas</a>
+            <?php } ?>
             <a href="tramites.php" class="btn btn-secondary">Volver a tr&aacute;mites</a>
         <?php } else { ?>
             <a href="login.php" class="btn btn-info">Volver a ingresar</a>

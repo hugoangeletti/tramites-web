@@ -449,6 +449,8 @@ function armarIntencionPagoPendiente($respuestaWs)
         'cuotas'      => $cuotas,
         'estado'      => $estado,
         'fechaInicio' => isset($nodo['FechaInicio']) ? $nodo['FechaInicio'] : '',
+        // solo viene poblado cuando la intención es de un plan de pagos
+        'idPlanPago'  => isset($nodo['IdPlanPago']) ? $nodo['IdPlanPago'] : '',
         // se mantiene por compatibilidad con el código que todavía lo lee
         'enviada' => ($estado !== 'iniciada'),
     );

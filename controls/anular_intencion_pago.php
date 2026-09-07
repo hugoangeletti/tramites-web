@@ -9,7 +9,18 @@ $continuar = true;
 if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     $hashColegiado = $_SESSION['hashColegiado'];
 
-    $estadoIntencion = isset($_SESSION['intencionPagoPendiente']['estado']) ? $_SESSION['intencionPagoPendiente']['estado'] : 'enviada';
+    $origen = (isset($_GET['origen']) && $_GET['origen'] == 'curso') ? 'curso' : 'colegiacion';
+    if ($origen == 'curso') {
+        if (isset($_GET['idCurso']) && $_GET['idCurso'] <> '') {
+            $idCurso = $_GET['idCurso'];
+        } else {
+            $continuar = FALSE;
+        }
+    }
+
+    $estadoIntencion = ($origen == 'curso')
+        ? (isset($_SESSION['intencionesPagoPendientesCurso'][$idCurso]['estado']) ? $_SESSION['intencionesPagoPendientesCurso'][$idCurso]['estado'] : 'enviada')
+        : (isset($_SESSION['intencionPagoPendiente']['estado']) ? $_SESSION['intencionPagoPendiente']['estado'] : 'enviada');
     if ($estadoIntencion <> 'iniciada' && $estadoIntencion <> 'enviada') {
         // Gire ya informó un resultado (aprobada/denegada/espera): no se puede anular
         $continuar = FALSE;
@@ -43,7 +54,11 @@ if ($continuar) {
 
     $rta = json_decode($result, true);
     if (!$err && isset($rta['codigo']) && $rta['codigo'] == 1) {
-        unset($_SESSION['intencionPagoPendiente']);
+        if ($origen == 'curso') {
+            unset($_SESSION['intencionesPagoPendientesCurso'][$idCurso]);
+        } else {
+            unset($_SESSION['intencionPagoPendiente']);
+        }
         $mensaje = "La intenci&oacute;n de pago fue anulada correctamente.";
         $clase = "alert alert-success";
     } else {
@@ -57,9 +72,12 @@ if ($continuar) {
 }
 
 if (isset($hashColegiado) && $hashColegiado <> "") {
+    $urlVolver = (isset($origen) && $origen == 'curso')
+        ? 'cuotas_curso.php?id=' . $hashColegiado . '&reg=' . (isset($idCurso) ? $idCurso : '')
+        : 'cuotas.php?id=' . $hashColegiado;
 ?>
     <body onLoad="document.forms['myForm'].submit()">
-        <form name="myForm" method="POST" action="cuotas.php?id=<?php echo $hashColegiado; ?>">
+        <form name="myForm" method="POST" action="<?php echo $urlVolver; ?>">
             <input type="hidden" name="mensaje" value="<?php echo htmlspecialchars($mensaje, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="clase" value="<?php echo htmlspecialchars($clase, ENT_QUOTES, 'UTF-8'); ?>">
         </form>

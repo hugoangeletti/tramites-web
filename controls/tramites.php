@@ -71,6 +71,14 @@ if ($continua) {
                     } else {
                         unset($_SESSION['intencionPagoPendiente']);
                     }
+
+                    // Todas las intenciones de pago vigentes del colegiado (cualquier
+                    // concepto), para armar el resumen de "pago pendiente" de esta pantalla.
+                    // Ojo: esta clave es la misma ("intencion_pago") que usan otros endpoints
+                    // para un único registro; acá buscar_colegiado.php la devuelve como array.
+                    $intencionesPagoTramites = (isset($respuesta['intencion_pago']) && is_array($respuesta['intencion_pago']))
+                        ? $respuesta['intencion_pago']
+                        : array();
                 } else {
                 ?>
                     <h4 style="color: red;">Usuario NO V&Aacute;LIDO - <?php echo $respuesta['mensaje']; ?></h4>
@@ -162,15 +170,68 @@ if ($continua) {
         ?>
         <div class="col-md-12">
             <?php require_once '../html/menuTramites.php'; ?>
-            <?php if (isset($_SESSION['intencionPagoPendiente'])) { ?>
+            <?php
+            // Se agrupan por concepto (y por curso puntual, si son de distintos cursos)
+            // para mostrar un solo aviso aunque haya varias intenciones aprobadas juntas.
+            $gruposIntencionesTramites = array();
+            foreach ($intencionesPagoTramites as $intencionTramites) {
+                $estadoIntencionTramites = isset($intencionTramites['Estado']) ? strtolower(trim($intencionTramites['Estado'])) : '';
+                $hashIntencionTramites = isset($intencionTramites['Hash']) ? $intencionTramites['Hash'] : '';
+                $fechaInicioTramites = isset($intencionTramites['FechaInicio']) ? $intencionTramites['FechaInicio'] : '';
+
+                // "iniciada"/"enviada" no se muestran acá (el colegiado las ve y las
+                // completa/anula desde la pantalla puntual de cada concepto). Si quedaron
+                // así hace más de 5 minutos sin resultado de Gire, se anulan solas para
+                // no dejar la deuda trabada indefinidamente.
+                if ($estadoIntencionTramites == 'iniciada' || $estadoIntencionTramites == 'enviada') {
+                    if ($hashIntencionTramites <> '' && $fechaInicioTramites <> '' && (time() - strtotime($fechaInicioTramites)) > 300) {
+                        anularIntencionPagoWs($hashIntencionTramites);
+                    }
+                    continue;
+                }
+                // Solo interesa avisar sobre las aprobadas: todavía resta que Gire
+                // informe el lote de cobranza para que se acredite el pago.
+                if ($estadoIntencionTramites <> 'aprobada') { continue; }
+
+                $conceptoTramites = isset($intencionTramites['Concepto']) ? $intencionTramites['Concepto'] : '';
+                $totalTramites = isset($intencionTramites['TotalPago']) ? $intencionTramites['TotalPago'] : 0;
+                if ($conceptoTramites == 'plan_pago') {
+                    $claveGrupoTramites = 'plan_pago';
+                    $conceptoTextoTramites = 'de su plan de pagos';
+                    $urlVerDetalleTramites = 'planDePagos.php?id=' . $hashColegiado;
+                } else if ($conceptoTramites == 'cursos') {
+                    $idAsistenteTramites = isset($intencionTramites['IdAsistente']) ? $intencionTramites['IdAsistente'] : '';
+                    $claveGrupoTramites = 'cursos_' . $idAsistenteTramites;
+                    $conceptoTextoTramites = 'de cuotas de curso';
+                    $urlVerDetalleTramites = 'cuotas_curso.php?id=' . $hashColegiado . '&reg=' . $idAsistenteTramites;
+                } else if ($conceptoTramites == 'colegiacion') {
+                    $claveGrupoTramites = 'colegiacion';
+                    $conceptoTextoTramites = 'de sus cuotas de colegiaci&oacute;n';
+                    $urlVerDetalleTramites = 'cuotas.php?id=' . $hashColegiado;
+                } else {
+                    continue;
+                }
+
+                if (!isset($gruposIntencionesTramites[$claveGrupoTramites])) {
+                    $gruposIntencionesTramites[$claveGrupoTramites] = array(
+                        'texto'    => $conceptoTextoTramites,
+                        'url'      => $urlVerDetalleTramites,
+                        'total'    => 0,
+                        'cantidad' => 0,
+                    );
+                }
+                $gruposIntencionesTramites[$claveGrupoTramites]['total'] += $totalTramites;
+                $gruposIntencionesTramites[$claveGrupoTramites]['cantidad']++;
+            }
+            ?>
+            <?php foreach ($gruposIntencionesTramites as $grupoTramites) { ?>
                 <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap">
-                    <?php $estadoIntencionTramites = isset($_SESSION['intencionPagoPendiente']['estado']) ? $_SESSION['intencionPagoPendiente']['estado'] : 'enviada'; ?>
-                    <?php if ($estadoIntencionTramites == 'iniciada' || $estadoIntencionTramites == 'enviada') { ?>
-                        <span>Tiene un pago iniciado por <b>$<?php echo number_format($_SESSION['intencionPagoPendiente']['total'], 0, ',', '.'); ?></b> que a&uacute;n no complet&oacute;.</span>
+                    <?php if ($grupoTramites['cantidad'] > 1) { ?>
+                        <span>Tiene <?php echo $grupoTramites['cantidad']; ?> pagos <?php echo $grupoTramites['texto']; ?> por un total de <b>$<?php echo number_format($grupoTramites['total'], 0, ',', '.'); ?></b> pendientes de acreditaci&oacute;n.</span>
                     <?php } else { ?>
-                        <span>Tiene un pago de <b>$<?php echo number_format($_SESSION['intencionPagoPendiente']['total'], 0, ',', '.'); ?></b> pendiente de acreditaci&oacute;n.</span>
+                        <span>Tiene un pago <?php echo $grupoTramites['texto']; ?> de <b>$<?php echo number_format($grupoTramites['total'], 0, ',', '.'); ?></b> pendiente de acreditaci&oacute;n.</span>
                     <?php } ?>
-                    <a href="cuotas.php?id=<?php echo $hashColegiado; ?>" class="btn btn-warning btn-sm">Ver detalle</a>
+                    <a href="<?php echo $grupoTramites['url']; ?>" class="btn btn-warning btn-sm">Ver detalle</a>
                 </div>
             <?php } ?>
             <div class="card drive-card drive-banner mb-4">

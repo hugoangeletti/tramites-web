@@ -98,6 +98,10 @@ if ($continuar) {
         <?php
         if (sizeof($cursos) >= 0) {
         ?>
+            <div class="btn-group mb-3" role="group">
+                <button type="button" class="btn btn-outline-primary active" id="filtroActivos" onclick="filtrarCursosAsistente('A', this)">Activos</button>
+                <button type="button" class="btn btn-outline-primary" id="filtroFinalizados" onclick="filtrarCursosAsistente('F', this)">Finalizados</button>
+            </div>
             <div class="table-responsive">
             <table id="cuotas" class="table">
                 <thead>
@@ -132,23 +136,24 @@ if ($continuar) {
                                 break;
                         }
                         ?>
-                        <tr>
+                        <tr data-estado="<?php echo htmlspecialchars($estado, ENT_QUOTES, 'UTF-8'); ?>">
                             <td style="display: none;"><?php echo $idCurso; ?></td>
                             <td><?php echo $titulo; ?></td>
                             <td style="text-align: center;"><?php echo cambiarFechaFormatoParaMostrar($fechaInicio); ?></td>
                             <td style="text-align: center;"><?php echo $nombreEstado; ?></td>
                             <td style="text-align: right;">
-                                <?php 
-                                if ($estado == 'A') {
-                                    if ($cantidadCuotasImpagas > 0) {
-                                    ?>
+                                <?php if ($estado == 'A') { ?>
+                                <div class="d-flex flex-wrap justify-content-end" style="gap: 6px;">
+                                    <?php if ($cantidadCuotasImpagas > 0) { ?>
                                         <a href="esem_imprimir_chequera.php?id=<?php echo $hashColegiado; ?>&reg=<?php echo $idCurso; ?>&asistente" class="btn btn-info">Chequera</a>
                                         <a href="esem_imprimir_planilla.php?id=<?php echo $hashColegiado; ?>&reg=<?php echo $idCurso; ?>&asistente" class="btn btn-info">Planilla</a>
-                                    <?php 
-                                    } 
-                                    ?>
+                                        <?php if (MOSTRAR_PAGO_EN_LINEA) { ?>
+                                            <a href="cuotas_curso.php?id=<?php echo $hashColegiado; ?>&reg=<?php echo $curso['idCursosAsistente']; ?>" class="btn btn-success">Pagar en línea</a>
+                                        <?php } ?>
+                                    <?php } ?>
                                     <button type="button" class="btn btn-info" data-toggle="modal" data-target="#anular_<?php echo $idCurso; ?>Modal">Anular inscripción</button>
-                                    <div class="modal fade" id="anular_<?php echo $idCurso; ?>Modal" tabindex="-1" aria-labelledby="anular_<?php echo $idCurso; ?>ModalLabel" aria-hidden="true">
+                                </div>
+                                <div class="modal fade" id="anular_<?php echo $idCurso; ?>Modal" tabindex="-1" aria-labelledby="anular_<?php echo $idCurso; ?>ModalLabel" aria-hidden="true">
                                       <div class="modal-dialog modal-lg">
                                         <div class="modal-content">
                                           <div class="modal-header">
@@ -216,5 +221,22 @@ require_once "../html/menuTramitesClose.php";
 include("../html/footer.php");
 ?>
 </div>
+<script>
+    function filtrarCursosAsistente(estado, boton) {
+        document.querySelectorAll('#cuotas tbody tr').forEach(function(fila) {
+            fila.style.display = (fila.dataset.estado === estado) ? '' : 'none';
+        });
+        document.querySelectorAll('#filtroActivos, #filtroFinalizados').forEach(function(b) {
+            b.classList.remove('active');
+        });
+        boton.classList.add('active');
+    }
 
+    document.addEventListener('DOMContentLoaded', function() {
+        var botonActivos = document.getElementById('filtroActivos');
+        if (botonActivos) {
+            filtrarCursosAsistente('A', botonActivos);
+        }
+    });
+</script>
 </body>

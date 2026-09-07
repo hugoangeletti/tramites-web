@@ -249,6 +249,9 @@ if ($estadoTesoreriaCodigo == 0) {
             <?php if (in_array($estadoTesoreriaCodigo, array(4, 5, 6, 7))) { ?>
                 <a href="planDePagos.php?id=<?php echo $hashColegiado; ?>" class="list-group-item list-group-item-action"><span class="item-dot" style="background-color:#34A853;"></span>Plan de Pagos</a>
             <?php } ?>
+            <?php if ($tieneCurso) { ?>
+                <a href="cuotas_cursos.php?id=<?php echo $hashColegiado; ?>" class="list-group-item list-group-item-action"><span class="item-dot" style="background-color:#34A853;"></span>Cuotas de cursos</a>
+            <?php } ?>
 
             <div class="list-group-item list-group-item-heading">ESEM</div>
             <a href="esem_inscripcion_curso.php?id=<?php echo $hashColegiado; ?>" class="list-group-item list-group-item-action"><span class="item-dot" style="background-color:#4285F4;"></span>Inscripci&oacute;n a cursos</a>

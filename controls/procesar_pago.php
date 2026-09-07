@@ -12,6 +12,29 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     $idColegiado = $_SESSION['idColegiado'];
     $hashColegiado = $_SESSION['hashColegiado'];
 
+    if (isset($_GET['origen']) && $_GET['origen'] == 'curso') {
+        $origen = 'curso';
+    } else if (isset($_GET['origen']) && $_GET['origen'] == 'plan_pago') {
+        $origen = 'plan_pago';
+    } else {
+        $origen = 'colegiacion';
+    }
+    if ($origen == 'curso') {
+        if (isset($_GET['idCurso']) && $_GET['idCurso'] <> '') {
+            $idCurso = $_GET['idCurso'];
+        } else {
+            $continuar = FALSE;
+            $mensaje .= "Falta el curso. ";
+        }
+    } else if ($origen == 'plan_pago') {
+        if (isset($_GET['idPlanPago']) && $_GET['idPlanPago'] <> '') {
+            $idPlanPago = $_GET['idPlanPago'];
+        } else {
+            $continuar = FALSE;
+            $mensaje .= "Falta el plan de pagos. ";
+        }
+    }
+
     if (isset($_POST['hashIntencionPago']) && $_POST['hashIntencionPago'] <> '') {
         $hashIntencionPago = $_POST['hashIntencionPago'];
     } else {
@@ -35,13 +58,21 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     $continuar = FALSE;
 }
 
-// Si la intención ya no está "iniciada" (se envió a Gire, o Gire ya informó un
-// resultado), no se genera un checkout nuevo para evitar abonar dos veces la
-// misma deuda. Si quedó "enviada" sin resultado, la vía para destrabarla es
-// anularla desde cuotas.php, no volver a intentar pagar por acá.
-if ($continuar && isset($_SESSION['intencionPagoPendiente']['estado']) && $_SESSION['intencionPagoPendiente']['estado'] <> 'iniciada') {
+// Si la intención que se está por procesar ya no está "iniciada" (se envió a Gire,
+// o Gire ya informó un resultado), no se genera un checkout nuevo para evitar
+// abonar dos veces la misma deuda. Se compara por hash contra lo que hay en sesión:
+// puede haber otra intención más vieja ahí (por ejemplo ya "aprobada", de un pago
+// distinto) que no tiene nada que ver con la que se está procesando ahora.
+$intencionSesion = (isset($origen) && $origen == 'curso')
+    ? (isset($_SESSION['intencionesPagoPendientesCurso'][$idCurso]) ? $_SESSION['intencionesPagoPendientesCurso'][$idCurso] : null)
+    : (isset($_SESSION['intencionPagoPendiente']) ? $_SESSION['intencionPagoPendiente'] : null);
+
+if ($continuar && $intencionSesion !== null
+    && isset($intencionSesion['hash']) && isset($hashIntencionPago) && $intencionSesion['hash'] === $hashIntencionPago
+    && isset($intencionSesion['estado']) && $intencionSesion['estado'] <> 'iniciada'
+) {
     $continuar = FALSE;
-    $mensaje .= "Ya hay un pago en curso para esta intenci&oacute;n. Si no lo complet&oacute;, an&uacute;lelo desde Cuotas de colegiaci&oacute;n para volver a intentarlo.";
+    $mensaje .= "Ya hay un pago en curso para esta intención. Si no lo completó, anúlelo para volver a intentarlo.";
 }
 
 // Sin credenciales de Gire la API responde 401 "el API Key es obligatorio", así que
@@ -78,10 +109,27 @@ if ($continuar) {
 
     $dni = isset($_SESSION['user_entidad']['dni']) ? $_SESSION['user_entidad']['dni'] : '';
 
+    // En modo prueba se pisa el mail real del colegiado por uno de sistemas, para
+    // que las notificaciones de Gire durante las pruebas no le lleguen a un tercero
+    if (GIRE_MODO_TEST) {
+        $email = 'sistemas@colmed1.org.ar';
+    }
+
     // Armamos el checkout según la documentación de Gire: https://docs.bdp.gire.com/WDAYpKYAjXvLsFv1sXlV6
+    if ($origen == 'curso') {
+        $descripcionPago = "Pago de cuotas de curso - Colegio de Médicos Distrito I";
+    } else if ($origen == 'plan_pago') {
+        $descripcionPago = "Pago de plan de pagos - Colegio de Médicos Distrito I";
+    } else {
+        $descripcionPago = "Pago de cuotas - Colegio de Médicos Distrito I";
+    }
+    $urlRetornoPago = "controls/pago_procesado.php?intencion=" . urlencode($hashIntencionPago)
+        . (($origen == 'curso') ? "&origen=curso&idCurso=" . urlencode($idCurso) : "")
+        . (($origen == 'plan_pago') ? "&origen=plan_pago&idPlanPago=" . urlencode($idPlanPago) : "");
+
     $data = array(
         "total"       => (float)$totalActualizado,
-        "description" => "Pago de cuotas - Colegio de Médicos Distrito I",
+        "description" => $descripcionPago,
         "currency"    => "ars",
         "reference"   => $hashIntencionPago,
         // Va como parámetro propio, no solo en sesión: el viaje a Gire/el banco
@@ -89,7 +137,7 @@ if ($continuar) {
         // en el medio, y aun así hay que poder informar el resultado al WS.
         // sidSalida es solo para diagnóstico (comparar contra la cookie que
         // realmente vuelve) y solo se manda mientras GIRE_MODO_TEST esté activo.
-        "return_url"  => PATH_HOME . "controls/pago_procesado.php?intencion=" . urlencode($hashIntencionPago)
+        "return_url"  => PATH_HOME . $urlRetornoPago
             . (GIRE_MODO_TEST ? "&sidSalida=" . urlencode(session_id()) : ""),
         "test"        => GIRE_MODO_TEST,
         "customer"    => array(
@@ -167,18 +215,27 @@ if ($continuar) {
             // Se asegura (no solo actualiza) el dato en sesión: si el pago arrancó
             // recién ahora (no desde una intención pendiente ya cargada), pago_procesado.php
             // igual necesita saber a qué hashIntencionPago informarle el resultado al volver
-            $_SESSION['intencionPagoPendiente'] = array(
-                'hash'    => $hashIntencionPago,
-                'total'   => $totalActualizado,
-                'cuotas'  => isset($_SESSION['intencionPagoPendiente']['cuotas']) ? $_SESSION['intencionPagoPendiente']['cuotas'] : array(),
-                'enviada' => TRUE,
-            );
+            if ($origen == 'curso') {
+                $_SESSION['intencionesPagoPendientesCurso'][$idCurso] = array(
+                    'hash'    => $hashIntencionPago,
+                    'total'   => $totalActualizado,
+                    'cuotas'  => isset($_SESSION['intencionesPagoPendientesCurso'][$idCurso]['cuotas']) ? $_SESSION['intencionesPagoPendientesCurso'][$idCurso]['cuotas'] : array(),
+                    'enviada' => TRUE,
+                );
+            } else {
+                $_SESSION['intencionPagoPendiente'] = array(
+                    'hash'    => $hashIntencionPago,
+                    'total'   => $totalActualizado,
+                    'cuotas'  => isset($_SESSION['intencionPagoPendiente']['cuotas']) ? $_SESSION['intencionPagoPendiente']['cuotas'] : array(),
+                    'enviada' => TRUE,
+                );
+            }
         } else {
             $continuar = FALSE;
             $mensaje .= "No se pudo registrar el inicio del pago. Vuelva a intentarlo en unos minutos.";
             if (GIRE_MODO_TEST) {
                 $mensaje .= $errEnviada
-                    ? " Error de conexi&oacute;n con el WS: " . $errEnviada
+                    ? " Error de conexión con el WS: " . $errEnviada
                     : " Respuesta del WS: " . $resultEnviada;
             }
         }
@@ -188,7 +245,7 @@ if ($continuar) {
         // Mientras se esté probando, se muestra lo que devolvió Gire para poder diagnosticar
         if (GIRE_MODO_TEST) {
             if ($err) {
-                $mensaje .= " Error de conexi&oacute;n: " . $err;
+                $mensaje .= " Error de conexión: " . $err;
             } else {
                 $mensaje .= " Respuesta de la API (HTTP " . $httpCode . "): " . $result;
             }

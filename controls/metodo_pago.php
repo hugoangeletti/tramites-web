@@ -28,7 +28,23 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
     }
 
     $tieneDeudaAnterior = isset($_POST['tieneDeudaAnterior']) && $_POST['tieneDeudaAnterior'] == '1';
-    $origen = (isset($_GET['origen']) && $_GET['origen'] == 'plan') ? 'plan' : 'colegiacion';
+    if (isset($_GET['origen']) && $_GET['origen'] == 'plan_pago') {
+        $origen = 'plan_pago';
+        if (isset($_POST['idPlanPago']) && $_POST['idPlanPago'] <> '') {
+            $idPlanPago = $_POST['idPlanPago'];
+        } else {
+            $continuar = FALSE;
+        }
+    } else if (isset($_GET['origen']) && $_GET['origen'] == 'curso') {
+        $origen = 'curso';
+        if (isset($_GET['idCursosAsistente']) && $_GET['idCursosAsistente'] <> '') {
+            $idCursosAsistente = $_GET['idCursosAsistente'];
+        } else {
+            $continuar = FALSE;
+        }
+    } else {
+        $origen = 'colegiacion';
+    }
 } else {
     $continuar = FALSE;
 }
@@ -45,18 +61,25 @@ if ($continuar) {
             </p>
             <div class="d-flex flex-wrap">
                 <?php
-                if ($origen == 'plan') {
+                if ($origen == 'plan_pago') {
                     $urlImprimir = 'imprimirChequeraPlanPago.php?id=' . $hashColegiado;
+                    $urlVolver = 'planDePagos.php?id=' . $hashColegiado;
+                    $urlGenerarIntencion = 'generar_intencion_pago.php?id=' . $hashColegiado . '&origen=plan_pago&idPlanPago=' . $idPlanPago;
+                } else if ($origen == 'curso') {
+                    $urlImprimir = 'esem_imprimir_chequera.php?id=' . $hashColegiado . '&reg=' . $idCursosAsistente . '&asistente';
+                    $urlVolver = 'esem_asistente_curso.php?id=' . $hashColegiado;
+                    $urlGenerarIntencion = 'generar_intencion_pago.php?id=' . $hashColegiado . '&origen=curso&idCursosAsistente=' . $idCursosAsistente;
                 } else {
                     $urlImprimir = $tieneDeudaAnterior
                         ? 'imprimirNotaDeuda.php?id=' . $hashColegiado
                         : 'imprimirChequera.php?id=' . $hashColegiado;
+                    $urlVolver = 'cuotas.php?id=' . $hashColegiado;
+                    $urlGenerarIntencion = 'generar_intencion_pago.php?id=' . $hashColegiado;
                 }
-                $urlVolver = ($origen == 'plan') ? 'planDePagos.php?id=' . $hashColegiado : 'cuotas.php?id=' . $hashColegiado;
                 ?>
                 <a href="<?php echo $urlImprimir; ?>" class="btn btn-dark mr-2 mb-2">Imprimir cuotas seleccionadas</a>
                 <?php if (MOSTRAR_PAGO_EN_LINEA) { ?>
-                    <form action="generar_intencion_pago.php?id=<?php echo $hashColegiado; ?>" method="POST" class="d-inline">
+                    <form action="<?php echo $urlGenerarIntencion; ?>" method="POST" class="d-inline">
                         <?php foreach ($cuotasSeleccionadas as $idCuota) { ?>
                             <input type="hidden" name="cuotas_seleccionadas[]" value="<?php echo htmlspecialchars($idCuota, ENT_QUOTES, 'UTF-8'); ?>">
                         <?php } ?>
