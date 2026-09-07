@@ -53,6 +53,16 @@ define("MOSTRAR_PAGO_EN_LINEA", TRUE);
 // pero es un dominio y una conexión servidor-a-servidor distinta a esta.
 define("PATH_HOME", (ENV == "prod") ? "https://www.colmed1.com.ar/tramites-web/" : "http://localhost/tramites-web/");
 
+// Modo mantenimiento: si está en TRUE, todas las pantallas (excepto la de
+// mantenimiento en sí) redirigen a controls/mantenimiento.php. Apagar apenas
+// el sistema vuelva a estar disponible.
+define("MODO_MANTENIMIENTO", FALSE);
+
+if (MODO_MANTENIMIENTO && basename($_SERVER['SCRIPT_NAME']) <> 'mantenimiento.php') {
+    header('Location: ' . PATH_HOME . 'controls/mantenimiento.php');
+    exit;
+}
+
 // URL base del web service, usada por todos los controladores
 define("URL_WS", (ENV == "prod")
     ? "http://webservices.colmed1.com.ar/colegio/ws-colmed"
