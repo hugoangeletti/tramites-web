@@ -110,7 +110,6 @@ if (isset($_GET['id']) && $_GET['id'] == $_SESSION['hashColegiado']) {
         // Cerrar la sesión cURL
         curl_close($ch);
         $respuesta = (json_decode($result,true));
-        var_dump($respuesta);
         if (isset($respuesta)) {
             if ($respuesta['codigo'] == '1') {
                 $idIntencionPago = $respuesta['idIntencionPago'];

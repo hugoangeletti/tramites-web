@@ -42,11 +42,15 @@ define("GIRE_CHECKOUT_URL", "https://api.bdp.gire.com/p/checkout");
 
 // Modo prueba del checkout de Gire (permite operar con las tarjetas de test).
 // En FALSE: los pagos son reales. Poner en TRUE solo para volver a probar.
-define("GIRE_MODO_TEST", TRUE);
+define("GIRE_MODO_TEST", FALSE);
 
 // Mientras la integración con Gire no esté habilitada, los botones de pago
 // en línea no se muestran en ningún entorno. Poner en TRUE para activarlos.
 define("MOSTRAR_PAGO_EN_LINEA", TRUE);
+
+// La sección "Especialidades" todavía se está terminando: se deja oculta del
+// menú hasta confirmar que está lista, aunque el colegiado tenga especialidades.
+define("MOSTRAR_ESPECIALIDADES", FALSE);
 
 // En prod va HTTPS: la cookie Secure (ver arriba) no se guarda si el sitio se
 // sirve por HTTP. El WS interno (URL_WS, más abajo) sigue sin soportar HTTPS,

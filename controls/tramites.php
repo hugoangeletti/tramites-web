@@ -65,6 +65,10 @@ if ($continua) {
                     $tieneCurso = $colegiado['tieneCurso'];
                     $_SESSION['tieneCurso'] = $tieneCurso;
 
+                    $especialidades = isset($respuesta['especialidades']) && is_array($respuesta['especialidades']) ? $respuesta['especialidades'] : array();
+                    $_SESSION['especialidades'] = $especialidades;
+                    $_SESSION['tieneEspecialidades'] = sizeof($especialidades) > 0;
+
                     $intencionPagoPendiente = armarIntencionPagoPendiente($respuesta);
                     if ($intencionPagoPendiente !== NULL) {
                         $_SESSION['intencionPagoPendiente'] = $intencionPagoPendiente;

@@ -18,6 +18,7 @@ $estadoTesoreriaLeyenda = isset($_SESSION['estado_tesoreria_leyenda']) ? $_SESSI
 $conSeguro = isset($_SESSION['conSeguro']) ? $_SESSION['conSeguro'] : '';
 $conTramites = isset($conSeguro) && $conSeguro <> '';
 $tieneCurso = isset($_SESSION['tieneCurso']) ? $_SESSION['tieneCurso'] : false;
+$tieneEspecialidades = isset($_SESSION['tieneEspecialidades']) ? $_SESSION['tieneEspecialidades'] : false;
 $sexo = isset($_SESSION['sexo']) ? $_SESSION['sexo'] : '';
 
 $permiteCertificado = TRUE;
@@ -243,6 +244,11 @@ if ($estadoTesoreriaCodigo == 0) {
         <div class="list-group">
             <div class="list-group-item list-group-item-heading">Certificados</div>
             <a href="solicitar_certificado.php?id=<?php echo $hashColegiado; ?>" class="list-group-item list-group-item-action <?php if (!$permiteCertificado) { echo 'disabled'; } ?>"><span class="item-dot" style="background-color:#EA4335;"></span>Solicitar certificado</a>
+
+            <?php if ($tieneEspecialidades && MOSTRAR_ESPECIALIDADES) { ?>
+            <div class="list-group-item list-group-item-heading">Especialidades</div>
+            <a href="especialidades.php?id=<?php echo $hashColegiado; ?>" class="list-group-item list-group-item-action"><span class="item-dot" style="background-color:#EA4335;"></span>Mis especialidades</a>
+            <?php } ?>
 
             <div class="list-group-item list-group-item-heading">Tesorer&iacute;a</div>
             <a href="cuotas.php?id=<?php echo $hashColegiado; ?>" class="list-group-item list-group-item-action"><span class="item-dot" style="background-color:#34A853;"></span>Cuotas de colegiaci&oacute;n</a>
