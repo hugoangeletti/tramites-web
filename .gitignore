@@ -1,1 +1,3 @@
 dataAccess/secrets.php
+dataAccess/logs/
+controls/error_log

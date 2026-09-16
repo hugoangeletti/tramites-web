@@ -2,8 +2,8 @@
 // ENV se define antes de arrancar la sesión porque en producción hace falta
 // configurar la cookie de sesión (SameSite=None; Secure) con session_set_cookie_params()
 // antes de llamar a session_start() — no se puede hacer después.
-define("ENV", 'desa');
-//define("ENV", 'prod');
+//  define("ENV", 'desa');
+define("ENV", 'prod');
 
 if (ENV == "prod") {
     // Por defecto, los navegadores tratan la cookie de sesión como SameSite=Lax,
