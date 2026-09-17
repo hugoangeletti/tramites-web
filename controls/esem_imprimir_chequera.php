@@ -45,6 +45,7 @@ if (isset($_GET['id']) && $_GET['id'] <> "" && isset($_GET['reg']) && $_GET['reg
                     $titulo = $respuesta['datos']['titulo'];
                     $chequera = $respuesta['datos']['chequeraPDF'];
                 } else {
+                    $titulo = '';
                     $chequera = NULL;
                 }
             } else {
