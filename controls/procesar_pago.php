@@ -139,11 +139,13 @@ if ($continuar) {
         // realmente vuelve) y solo se manda mientras GIRE_MODO_TEST esté activo.
         "return_url"  => PATH_HOME . $urlRetornoPago
             . (GIRE_MODO_TEST ? "&sidSalida=" . urlencode(session_id()) : ""),
-        // El webhook server-to-server (controls/gire_webhook.php) se sacó
-        // temporalmente: Gire seguía sin entregarlo incluso con la URL
-        // corregida (bloqueo persistente del lado de ellos). Se puede volver
-        // a activar agregando "webhook" y "webhooksType" acá una vez que
-        // confirmen que el bloqueo se levantó.
+        // Notificación server-to-server independiente del regreso por navegador
+        // (ver controls/gire_webhook.php) — cubre los casos en que el navegador
+        // nunca completa la vuelta (3D Secure que no resuelve, pestaña cerrada, etc.).
+        // "final" solo dispara para códigos de aprobación (200, 3, 300, 301, 2) y
+        // no para rechazos, así que se usa "all" para no perderse los rechazos.
+        "webhook"     => PATH_HOME . "controls/gire_webhook.php",
+        "webhooksType" => "all",
         "test"        => GIRE_MODO_TEST,
         "customer"    => array(
             "email"          => $email,
