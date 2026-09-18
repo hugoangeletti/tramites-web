@@ -11,9 +11,18 @@
 //   data.result                   -> booleano de éxito/fracaso general
 // Sigue sin haber un mecanismo de autenticación documentado (firma/header
 // secreto) para verificar que la notificación es realmente de Gire.
-// Todavía no se confirmó la forma de un pago RECHAZADO — si status.code no
-// cae en ningún rango conocido, se informa "espera" en vez de asumir
-// aprobado o denegado sin certeza.
+// Además del webhook de una transacción normal, Gire manda uno de tipo
+// "checkout_expired" cuando se cumple el timeout del checkout sin que se haya
+// completado ningún pago (nunca hubo intento, así que no hay nodo
+// "data.payment"). Según la documentación pública (todavía sin confirmar
+// contra un caso real): el hash viaja en "data.checkout.reference" y el
+// status code en "data.status.code" = 401. Por eso la extracción de abajo
+// prueba primero la forma de pago normal y, si no encuentra nada ahí, cae a
+// estos campos alternativos. Para este tipo se informa siempre "expirada"
+// (INTENCION_PAGO_EXPIRADO = '7' del lado del WS), sin importar el status
+// code, porque no hubo intento de pago que clasificar como aprobado/denegado.
+// Si status.code no cae en ningún rango conocido, se informa "espera" en vez
+// de asumir aprobado o denegado sin certeza.
 require_once '../dataAccess/config.php';
 require_once '../dataAccess/funcionesPhp.php';
 
@@ -42,20 +51,26 @@ $lineaLog = json_encode(array(
 @file_put_contents($logDir . '/gire_webhook.log', $lineaLog . "\n", FILE_APPEND);
 
 $payment = isset($datos['data']['payment']) && is_array($datos['data']['payment']) ? $datos['data']['payment'] : array();
+$checkout = isset($datos['data']['checkout']) && is_array($datos['data']['checkout']) ? $datos['data']['checkout'] : array();
 
 // hashIntencionPago es nuestro propio hash (el que se generó al insertar la
 // intención de pago), no un id que devuelva Gire. Viaja como "reference" en
-// el checkout (lo mandamos nosotros al crearlo) y Gire lo devuelve tal cual.
-$hashIntencionPago = isset($payment['reference']) ? $payment['reference'] : null;
-$statusCode = isset($payment['status']['code']) ? $payment['status']['code'] : null;
+// el checkout (lo mandamos nosotros al crearlo) y Gire lo devuelve tal cual —
+// dentro de "data.payment.reference" en una transacción normal, o de
+// "data.checkout.reference" cuando el checkout venció sin ningún intento de pago.
+$hashIntencionPago = isset($payment['reference']) ? $payment['reference'] : (isset($checkout['reference']) ? $checkout['reference'] : null);
+$statusCode = isset($payment['status']['code']) ? $payment['status']['code'] : (isset($datos['data']['status']['code']) ? $datos['data']['status']['code'] : null);
 $transactionId = isset($payment['source']['transaction']['transactionId']) ? $payment['source']['transaction']['transactionId'] : null;
+$tipoWebhook = isset($datos['type']) ? $datos['type'] : null;
 
 $statusNum = is_numeric($statusCode) ? (int)$statusCode : NULL;
 
 // Mismo rango de status que ya usa pago_procesado.php para el regreso por navegador
 $estadoPago = NULL;
 if ($hashIntencionPago <> '' && $hashIntencionPago !== null) {
-    if ($statusNum !== NULL && $statusNum >= 200 && $statusNum <= 399) {
+    if ($tipoWebhook === 'checkout_expired') {
+        $estadoPago = 'expirada';
+    } else if ($statusNum !== NULL && $statusNum >= 200 && $statusNum <= 399) {
         $estadoPago = 'aprobada';
     } else if ($statusNum !== NULL && $statusNum >= 400) {
         $estadoPago = 'denegada';
