@@ -11,18 +11,22 @@
 //   data.result                   -> booleano de éxito/fracaso general
 // Sigue sin haber un mecanismo de autenticación documentado (firma/header
 // secreto) para verificar que la notificación es realmente de Gire.
-// Además del webhook de una transacción normal, Gire manda uno de tipo
-// "checkout_expired" cuando se cumple el timeout del checkout sin que se haya
-// completado ningún pago (nunca hubo intento, así que no hay nodo
-// "data.payment"). Según la documentación pública (todavía sin confirmar
-// contra un caso real): el hash viaja en "data.checkout.reference" y el
-// status code en "data.status.code" = 401. Por eso la extracción de abajo
-// prueba primero la forma de pago normal y, si no encuentra nada ahí, cae a
-// estos campos alternativos. Para este tipo se informa siempre "expirada"
-// (INTENCION_PAGO_EXPIRADO = '7' del lado del WS), sin importar el status
-// code, porque no hubo intento de pago que clasificar como aprobado/denegado.
-// Si status.code no cae en ningún rango conocido, se informa "espera" en vez
-// de asumir aprobado o denegado sin certeza.
+// La documentación pública de Gire describe un webhook de tipo aparte
+// "checkout_expired" (sin nodo "data.payment") para cuando un checkout vence
+// sin ningún intento de pago. En la práctica, confirmado con un QR vencido el
+// 2026-09-18, esto NO es lo que se recibe: llega un webhook normal de tipo
+// "checkout" con "data.payment" completo (el QR sí tuvo un intento) y
+// "data.payment.status.code" = "401" ("Expirado"). Por eso el código 401 se
+// trata como expirado sin importar el "type" del webhook; el chequeo de
+// "type == checkout_expired" se deja solo por si alguna vez llega ese caso
+// documentado (checkout que vence sin intento alguno), usando como
+// respaldo "data.checkout.reference" / "data.status.code" ya que ahí no
+// habría "data.payment" del que sacar el hash.
+// Fuera del caso 401, se informa "expirada" (INTENCION_PAGO_EXPIRADO = '7'
+// del lado del WS); el resto de los códigos siguen el mismo rango que ya usa
+// pago_procesado.php para el regreso por navegador: 200-399 aprobada, 400+
+// (salvo 401) denegada. Si status.code no cae en ningún rango conocido, se
+// informa "espera" en vez de asumir aprobado o denegado sin certeza.
 require_once '../dataAccess/config.php';
 require_once '../dataAccess/funcionesPhp.php';
 
@@ -68,7 +72,7 @@ $statusNum = is_numeric($statusCode) ? (int)$statusCode : NULL;
 // Mismo rango de status que ya usa pago_procesado.php para el regreso por navegador
 $estadoPago = NULL;
 if ($hashIntencionPago <> '' && $hashIntencionPago !== null) {
-    if ($tipoWebhook === 'checkout_expired') {
+    if ($tipoWebhook === 'checkout_expired' || $statusNum === 401) {
         $estadoPago = 'expirada';
     } else if ($statusNum !== NULL && $statusNum >= 200 && $statusNum <= 399) {
         $estadoPago = 'aprobada';
@@ -78,12 +82,23 @@ if ($hashIntencionPago <> '' && $hashIntencionPago !== null) {
         $estadoPago = 'espera';
     }
 
-    llamarWs(URL_WS.'/cobranza/marcar_intencion_enviada.php', 'POST', array(
+    $respuestaMarcado = llamarWs(URL_WS.'/cobranza/marcar_intencion_enviada.php', 'POST', array(
         "hashIntencionPago" => $hashIntencionPago,
         "estado"            => $estadoPago,
         "idGire"            => $transactionId,
         "respuestaGire"     => $cuerpoCrudo,
     ));
+
+    // Se loguea la respuesta del WS para poder diagnosticar si en algún caso
+    // no actualiza la intención de pago (rechazo por regla de negocio, hash
+    // no encontrado, error de red, etc.) sin depender de reproducir el pago.
+    $lineaLogMarcado = json_encode(array(
+        'fecha'             => date('Y-m-d H:i:s'),
+        'hashIntencionPago' => $hashIntencionPago,
+        'estadoEnviado'     => $estadoPago,
+        'respuestaWs'       => $respuestaMarcado,
+    ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    @file_put_contents($logDir . '/gire_webhook.log', $lineaLogMarcado . "\n", FILE_APPEND);
 }
 
 // Gire espera una respuesta HTTP 200 simple para dar la notificación por
